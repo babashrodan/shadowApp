@@ -1,16 +1,16 @@
-
-
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
 const treasuryRoutes = require('./routes/treasury');
 const marketRoutes = require('./routes/market');
-// const optimizationRoutes = require('./routes/optimization');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 const app = express();
+
+// Body parsing middleware (no longer necessary to require bodyParser)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -21,7 +21,7 @@ const connectDB = async () => {
     });
     console.log('MongoDB connected');
   } catch (err) {
-    console.error(err.message);
+    console.error(err.stack); // Log the stack trace for better debugging
     process.exit(1); // Exit process with failure
   }
 };
@@ -36,4 +36,3 @@ connectDB();
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-
