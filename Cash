@@ -1,0 +1,247 @@
+const Web3 = require('web3');
+const web3 = new Web3('https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID'); // Use your Infura Project ID
+
+// ABI from the compiled smart contract
+const abi = [
+    {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+const contractAddress = 'YOUR_CONTRACT_ADDRESS'; // Replace with the address of your deployed contract
+const contract = new web3.eth.Contract(abi, contractAddress);
+
+// Example function to mint tokens
+async function mintTokens(toAddress, amount) {
+    const fromAddress = 'YOUR_WALLET_ADDRESS'; // Replace with your wallet address
+    const privateKey = 'YOUR_PRIVATE_KEY'; // Replace with your private key
+
+    const tx = contract.methods.mint(toAddress, amount);
+
+    const gas = await tx.estimateGas({ from: fromAddress });
+    const gasPrice = await web3.eth.getGasPrice();
+    const data = tx.encodeABI();
+    const nonce = await web3.eth.getTransactionCount(fromAddress);
+
+    const signedTx = await web3.eth.accounts.signTransaction(
+        {
+            to: contractAddress,
+            data,
+            gas,
+            gasPrice,
+            nonce,
+            chainId: 1 // Mainnet
+        },
+        privateKey
+    );
+
+    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    console.log('Transaction receipt:', receipt);
+}
+
+// Call the mint function
+mintTokens('RECIPIENT_ADDRESS', 'AMOUNT_TO_MINT');
+const Web3 = require('web3');
+const express = require('express');
+const mongoose = require('mongoose');
+const axios = require('axios');
+const plaid = require('plaid');
+
+class ShadowMoney {
+    constructor(infuraProjectId, contractABI, contractAddress, walletAddress, privateKey) {
+        this.web3 = new Web3(https://mainnet.infura.io/v3/${infuraProjectId});
+        this.contract = new this.web3.eth.Contract(contractABI, contractAddress);
+        this.walletAddress = walletAddress;
+        this.privateKey = privateKey;
+
+        // MongoDB setup
+        mongoose.connect('mongodb://localhost/ozhumanil', { useNewUrlParser: true, useUnifiedTopology: true });
+
+        // Treasury Rate Schema
+        const TreasuryRateSchema = new mongoose.Schema({
+            currency: String,
+            rate: Number,
+            date: { type: Date, default: Date.now }
+        });
+        this.TreasuryRate = mongoose.model('TreasuryRate', TreasuryRateSchema);
+
+        // Express setup
+        this.app = express();
+        this.app.use(express.json());
+    }
+
+    async getTreasuryRates() {
+        try {
+            const response = await axios.get('https://api.example.com/treasury-rates');
+            const rates = response.data;
+
+            rates.forEach(async rate => {
+                await this.TreasuryRate.create({ currency: rate.currency, rate: rate.rate });
+            });
+
+            return rates;
+        } catch (error) {
+            console.error('Error fetching treasury rates:', error);
+        }
+    }
+
+    async calculateAverageRate() {
+        const rates = await this.TreasuryRate.find({});
+        const averageRate = rates.reduce((sum, rate) => sum + rate.rate, 0) / rates.length;
+        return averageRate;
+    }
+
+    async mintTokens(toAddress, amount) {
+        const averageRate = await this.calculateAverageRate();
+        const adjustedAmount = amount * averageRate / 100;
+
+        try {
+            const mintTx = this.contract.methods.mint(toAddress, adjustedAmount);
+            const options = {
+                to: this.contract.options.address,
+                data: mintTx.encodeABI(),
+                gas: await mintTx.estimateGas({ from: this.walletAddress }),
+                gasPrice: await this.web3.eth.getGasPrice(),
+            };
+
+            const signed = await this.web3.eth.accounts.signTransaction(options, this.privateKey);
+            const receipt = await this.web3.eth.sendSignedTransaction(signed.rawTransaction);
+            return receipt;
+        } catch (error) {
+            console.error('Minting failed:', error);
+            throw error;
+        }
+    }
+
+    setupEndpoints() {
+        this.app.post('/mint', async (req, res) => {
+            const { address, amount } = req.body;
+
+            try {
+                const receipt = await this.mintTokens(address, amount);
+                res.status(200).send({ message: 'Minting successful', receipt });
+            } catch (error) {
+                res.status(500).send({ error: 'Minting failed', details: error.message });
+            }
+        });
+
+        this.app.post('/create-link-token', async (req, res) => {
+            const client = new plaid.Client({
+                clientID: 'YOUR_PLAID_CLIENT_ID',
+                secret: 'YOUR_PLAID_SECRET',
+                env: plaid.environments.sandbox,
+            });
+
+            try {
+                const response = await client.createLinkToken({
+                    user: { client_user_id: 'unique-user-id' },
+                    client_name: 'Samuel Global Management',
+                    products: ['transactions'],
+                    country_codes: ['US'],
+                    language: 'en',
+                });
+                res.json(response);
+            } catch (error) {
+                res.status(500).send({ error: error.message });
+            }
+        });
+
+        this.app.post('/handle-cashapp-payment', async (req, res) => {
+            const { paymentMethodId, amount } = req.body;
+
+            try {
+                const client = new plaid.Client({
+                    clientID: 'YOUR_PLAID_CLIENT_ID',
+                    secret: 'YOUR_PLAID_SECRET',
+                    env: plaid.environments.sandbox,
+                });
+
+                const payment = await client.paymentIntents.create({
+                    amount: amount,
+                    currency: 'usd',
+                    payment_method: paymentMethodId,
+                    confirmation_method: 'automatic',
+                    confirm: true,
+                });
+
+                res.status(200).send({ success: true, payment });
+            } catch (error) {
+                res.status(500).send({ error: error.message });
+            }
+        });
+
+        this.app.listen(3000, () => {
+            console.log('Server running on port 3000');
+        });
+    }
+}
+
+module.exports = ShadowMoney;
+const ShadowMoney = require('./ShadowMoney');
+const infuraProjectId = 'YOUR_INFURA_PROJECT_ID';
+const contractABI = /* ABI from the compiled smart contract */;
+const contractAddress = 'YOUR_CONTRACT_ADDRESS';
+const walletAddress = 'YOUR_WALLET_ADDRESS';
+const privateKey = 'YOUR_PRIVATE_KEY';
+
+const shadowMoney = new ShadowMoney(infuraProjectId, contractABI, contractAddress, walletAddress, privateKey);
+shadowMoney.setupEndpoints();
+DOCKERIZE THE APPLICATION: FROM node:14
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["node", "index.js"]
+version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/db:/data/db
+docker-compose up --build
