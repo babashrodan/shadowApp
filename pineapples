@@ -1,0 +1,149 @@
+"""
+Created on Sun Dec 24 06:35:02 2023
+
+@author: Jonathan B. Samuel
+"""
+
+class StabilityPeg:
+    def __init__(self, initial_value=1.0):
+        self.value = initial_value
+
+    def update_value(self, market_values):
+        if market_values:
+            # Calculate a simple average of market values to determine the peg value
+            market_avg = sum(market_values) / len(market_values)
+        else:
+            market_avg = 0  # Default to 0 if no values provided
+
+        self.value = market_avg
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize the StabilityPeg
+    peg = StabilityPeg()
+
+    # Simulated market values (e.g., treasury rates, bond market values)
+    market_values = [1.5, 2.0, 1.8, 1.9]  # Example market values
+
+    # Update the peg value using the market values
+    peg.update_value(market_values)
+
+    # Output the updated peg value
+    print(f"Updated StabilityPeg value: {peg.value}")
+
+class AverageAggregate:
+    def __init__(self, initial_value=1.0):
+        self.value = initial_value
+
+    def calculate_currency_rate(self, treasury_rates, bond_percentiles, stock_market_prime_values):
+        # Aggregate calculation: Treasury rates + Bond value percentiles + Market-adjusted prime values
+        if treasury_rates and bond_percentiles and stock_market_prime_values:
+            # Calculate aggregate as the sum of all values divided by the count of values
+            aggregate = (sum(treasury_rates) + sum(bond_percentiles) + sum(stock_market_prime_values)) / \
+                        (len(treasury_rates) + len(bond_percentiles) + len(stock_market_prime_values))
+        else:
+            aggregate = 0  # Default to 0 if any of the input lists are empty
+
+        self.value = aggregate
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize the AverageAggregate
+    aggregate = AverageAggregate()
+
+    # Simulated market values (treasury rates, bond value percentiles, stock market prime values)
+    treasury_rates = [1.5, 2.0, 1.8, 1.9]  # Example treasury rates
+    bond_percentiles = [85, 90, 88, 87]  # Example bond value percentiles
+    stock_market_prime_values = [120, 125, 123, 122]  # Example stock market prime values
+
+    # Calculate the currency rate using the aggregated values
+    aggregate.calculate_currency_rate(treasury_rates, bond_percentiles, stock_market_prime_values)
+
+    # Output the updated currency rate
+    print(f"Updated Currency Algorithmic Rate: {aggregate.value}")
+
+class StabilityPeg:
+    def __init__(self, initial_value=1.0):
+        self.value = initial_value
+
+    def update_value(self, market_values):
+        if market_values:
+            market_avg = sum(market_values) / len(market_values)
+        else:
+            market_avg = 0  # Default to 0 if no values provided
+
+        self.value = market_avg
+
+
+class AverageAggregate:
+    def __init__(self, initial_value=1.0):
+        self.value = initial_value
+
+    def calculate_currency_rate(self, treasury_rates, bond_percentiles, stock_market_prime_values):
+        if treasury_rates and bond_percentiles and stock_market_prime_values:
+            aggregate = (sum(treasury_rates) + sum(bond_percentiles) + sum(stock_market_prime_values)) / \
+                        (len(treasury_rates) + len(bond_percentiles) + len(stock_market_prime_values))
+        else:
+            aggregate = 0
+
+        self.value = aggregate
+
+
+class Rolling:
+    def __init__(self):
+        self.stability_peg = StabilityPeg()
+        self.average_aggregate = AverageAggregate()
+
+    def calculate_rolling_values(self, treasury_rates, bond_percentiles, stock_market_prime_values):
+        self.stability_peg.update_value(treasury_rates)
+        self.average_aggregate.calculate_currency_rate(treasury_rates, bond_percentiles, stock_market_prime_values)
+
+    def display_values(self):
+        print(f"Rolling Stability Peg Value: {self.stability_peg.value}")
+        print(f"Rolling Average Aggregate Value: {self.average_aggregate.value}")
+
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize the Rolling class
+    rolling = Rolling()
+
+    # Simulated market values (treasury rates, bond value percentiles, stock market prime values)
+    treasury_rates = [9.436, 10.682, 8.06, 27.437, 9.825, 6.625, 3.398, 12.330, 5.91, 2.532, 7.001, 3.852, 6.239, 2.10, 3.670]  # live treasury rates
+    bond_percentiles = [85, 90, 88, 87]  # Example bond value percentiles
+    stock_market_prime_values = [26.45, 20.73, 30.88]  # Example stock market prime values
+
+    # Calculate rolling values
+    rolling.calculate_rolling_values(treasury_rates, bond_percentiles, stock_market_prime_values)
+
+    # Display the rolling peg and aggregate values
+    rolling.display_values()
+
+class RWA:
+    def __init__(self, currency_unit_value=1.0):
+        self.currency_unit_value = currency_unit_value
+        self.asset_values = {}  # Dictionary to store asset values
+
+    def add_asset_value(self, asset_name, value_per_unit):
+        self.asset_values[asset_name] = value_per_unit
+
+    def convert_to_currency(self, asset_name, quantity):
+        if asset_name in self.asset_values:
+            asset_value = self.asset_values[asset_name]
+            return quantity * asset_value / self.currency_unit_value
+        else:
+            return 0
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize the RWA class
+    rwa = RWA()
+
+    # Adding asset values (e.g., real estate, digital assets, commodities)
+    rwa.add_asset_value("RealEstate", 150000)  # Example value per unit for Real Estate
+    rwa.add_asset_value("DigitalArt", 500)    # Example value per unit for Digital Art
+    rwa.add_asset_value("Commodities", 100)   # Example value per unit for Commodities
+
+    # Convert asset value to the currency
+    currency_value = rwa.convert_to_currency("RealEstate", 101)  # Convert 101 units of Real Estate to currency
+    print(f"Converted Real Estate value to Currency: {currency_value}")
