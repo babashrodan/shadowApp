@@ -1,0 +1,190 @@
+"""
+Created on Sun Dec 24 08:49:48 2023
+
+@author: Jonathan B. Samuel
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import integrate
+from scipy.integrate import quad
+
+def logistic_map_with_shipping_and_rate(r, x0, shipping_cost, rate_of_change, num_steps):
+    x_values = [float(x0)]  # Ensure x0 is a float
+    for _ in range(num_steps - 1):
+        x_n = x_values[-1]
+        price_change = rate_of_change * x_n
+        x_next = float(r * x_n * (1 - x_n)) + float(shipping_cost) + price_change
+        x_values.append(x_next)
+    return x_values
+
+def generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps):
+    financial_data = []
+    for x0 in x0_sequence:
+        for shipping_cost in shipping_costs:
+            x_values = logistic_map_with_shipping_and_rate(r_values[0], x0, shipping_cost, rate_of_change, num_steps)
+            financial_data.append(x_values)
+    return np.array(financial_data)
+
+def numerical_derivative(f, x0, h=1e-5):
+    try:
+        return (f(x0 + h) - f(x0 - h)) / (2 * h)
+    except (TypeError, ZeroDivisionError):
+        print("Error in calculating numerical derivative.")
+        return None
+
+
+def main():
+    # Set the parameters for the logistic map, shipping costs, and time steps
+    r_values = [2.5, 3.2, 3.5, 3.8]
+    x0_sequence = [0.2, 0.5, 0.8]
+    shipping_costs = [0, 0.1, 0.2]  # Add different shipping costs here
+    rate_of_change = 0.01  # Set the rate of change
+    num_steps = 100
+    dt = 1  # Time step
+
+    # Generate financial data for perpetual, swing, commodities, stock, bonds, and debt
+    financial_data_perpetual = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+    financial_data_swing = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+    financial_data_commodities = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+    financial_data_stock = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+    financial_data_bonds = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+    financial_data_debt = generate_financial_data_with_shipping_and_rate(r_values, x0_sequence, shipping_costs, rate_of_change, num_steps)
+
+    # Calculate average and standard deviation for each financial sequence
+    average_values_perpetual = np.mean(financial_data_perpetual, axis=1)
+    std_deviation_values_perpetual = np.std(financial_data_perpetual, axis=1)
+
+    average_values_swing = np.mean(financial_data_swing, axis=1)
+    std_deviation_values_swing = np.std(financial_data_swing, axis=1)
+
+    average_values_commodities = np.mean(financial_data_commodities, axis=1)
+    std_deviation_values_commodities = np.std(financial_data_commodities, axis=1)
+
+    average_values_stock = np.mean(financial_data_stock, axis=1)
+    std_deviation_values_stock = np.std(financial_data_stock, axis=1)
+
+    average_values_bonds = np.mean(financial_data_bonds, axis=1)
+    std_deviation_values_bonds = np.std(financial_data_bonds, axis=1)
+
+    average_values_debt = np.mean(financial_data_debt, axis=1)
+    std_deviation_values_debt = np.std(financial_data_debt, axis=1)
+
+    # Calculate the integral with the upper limit of x_prime and lower limit of infinity
+    integral_results_perpetual = []
+    integral_results_swing = []
+    integral_results_commodities = []
+    integral_results_stock = []
+    integral_results_bonds = []
+    integral_results_debt = []
+
+    for i in range(len(r_values) * len(x0_sequence)):
+        x0_idx = i % len(x0_sequence)
+    
+        try:
+            result_perpetual, _ = integrate.quad(lambda x: (x * financial_data_perpetual[i][0]) ** (-1), financial_data_perpetual[i][0], np.inf)
+            integral_results_perpetual.append(result_perpetual)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_perpetual at index {i}")
+
+        try:
+            result_swing, _ = integrate.quad(lambda x: (x * financial_data_swing[i][0]) ** (-1), financial_data_swing[i][0], np.inf)
+            integral_results_swing.append(result_swing)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_swing at index {i}")
+
+        try:
+            result_commodities, _ = integrate.quad(lambda x: (x * financial_data_commodities[i][0]) ** (-1), financial_data_commodities[i][0], np.inf)
+            integral_results_commodities.append(result_commodities)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_commodities at index {i}")
+
+        try:
+            result_stock, _ = integrate.quad(lambda x: (x * financial_data_stock[i][0]) ** (-1), financial_data_stock[i][0], np.inf)
+            integral_results_stock.append(result_stock)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_stock at index {i}")
+
+        try:
+            result_bonds, _ = integrate.quad(lambda x: (x * financial_data_bonds[i][0]) ** (-1), financial_data_bonds[i][0], np.inf)
+            integral_results_bonds.append(result_bonds)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_bonds at index {i}")
+
+        try:
+            result_debt, _ = integrate.quad(lambda x: (x * financial_data_debt[i][0]) ** (-1), financial_data_debt[i][0], np.inf)
+            integral_results_debt.append(result_debt)
+        except (IndexError, TypeError):
+            print(f"Error in calculating integral for financial_data_debt at index {i}")
+
+    # Calculate the numerical derivatives of the financial sequences
+    derivatives_perpetual = []
+    derivatives_swing = []
+    derivatives_commodities = []
+    derivatives_stock = []
+    derivatives_bonds = []
+    derivatives_debt = []
+
+for i in range(len(r_values) * len(x0_sequence)):
+    try:
+        derivative_perpetual = numerical_derivative(lambda x: financial_data_perpetual[i][int(x)], 0, dt)
+        derivatives_perpetual.append(derivative_perpetual)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_perpetual at index {i}")
+
+    try:
+        derivative_swing = numerical_derivative(lambda x: financial_data_swing[i][int(x)], 0, dt)
+        derivatives_swing.append(derivative_swing)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_swing at index {i}")
+
+    try:
+        derivative_commodities = numerical_derivative(lambda x: financial_data_commodities[i][int(x)], 0, dt)
+        derivatives_commodities.append(derivative_commodities)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_commodities at index {i}")
+
+    try:
+        derivative_stock = numerical_derivative(lambda x: financial_data_stock[i][int(x)], 0, dt)
+        derivatives_stock.append(derivative_stock)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_stock at index {i}")
+
+    try:
+        derivative_bonds = numerical_derivative(lambda x: financial_data_bonds[i][int(x)], 0, dt)
+        derivatives_bonds.append(derivative_bonds)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_bonds at index {i}")
+
+    try:
+        derivative_debt = numerical_derivative(lambda x: financial_data_debt[i][int(x)], 0, dt)
+        derivatives_debt.append(derivative_debt)
+    except (IndexError, TypeError):
+        print(f"Error in calculating derivative_debt at index {i}")
+
+
+    # Calculate the final expressions
+    expressions_perpetual = (average_values_perpetual - std_deviation_values_perpetual) ** 2 + integral_results_perpetual
+    expressions_swing = (average_values_swing - std_deviation_values_swing) ** 2 + integral_results_swing
+    expressions_commodities = (average_values_commodities - std_deviation_values_commodities) ** 2 + integral_results_commodities
+    expressions_stock = (average_values_stock - std_deviation_values_stock) ** 2 + integral_results_stock
+    expressions_bonds = (average_values_bonds - std_deviation_values_bonds) ** 2 + integral_results_bonds
+    expressions_debt = (average_values_debt - std_deviation_values_debt) ** 2 + integral_results_debt
+
+    # Display the results and plots
+    # ... (same as before, omitted for brevity)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    financial_data_sequences = [financial_data_perpetual, financial_data_swing, financial_data_commodities, financial_data_stock, financial_data_bonds, financial_data_debt]
+    for data in financial_data_sequences:
+        volatility = np.sqrt(252) * numerical_derivative(np.cumsum(data), 0)
+        ax.plot(data, label=f'Volatility: {volatility:.2f}%')
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Value')
+    ax.set_title('Volatility of Financial Data Sequences')
+    ax.legend()
+
+    plt.show()
+
+if __name__ == "__main__":
+    main()
