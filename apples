@@ -1,0 +1,113 @@
+"""
+Created on Sun Dec 24 06:28:32 2023
+
+@author: Jonathan B. Samuel
+"""
+
+class LeveragedBuyout:
+    def __init__(self, values):
+        self.values = values
+        self.shareholders = {
+            "John Doe": "CEO",
+            "Alice Smith": "CFO",
+            "Bob Johnson": "CTO",
+            "Emma Brown": "COO",
+            # Add more shareholders and positions as needed
+        }
+        self.market_creditors = {
+            "Creditor_A": 1000000,
+            "Creditor_B": 500000,
+            "Creditor_C": 800000,
+            # Add more creditors and principal values as needed
+        }
+
+    def identify_highest_lowest(self):
+        highest_value = max(self.values)
+        lowest_value = min(self.values)
+        return highest_value, lowest_value
+
+    def remove_lowest_value_points(self):
+        _, lowest_value = self.identify_highest_lowest()
+        self.values = [value for value in self.values if value != lowest_value]
+        print(f"Removed all occurrences of the lowest value ({lowest_value}) from the LBO.")
+
+    def adjust_asset_classes(self):
+        asset_classes = {
+            "Real Estate": 1000000,
+            "Equities": 500000,
+            "Bonds": 300000,
+            # Add more asset classes and their sizes as needed
+        }
+
+        adjusted_balance_sheet = {asset_class: 0 for asset_class in asset_classes}
+
+        for value in self.values:
+            for asset_class, size in asset_classes.items():
+                if value >= size:
+                    adjusted_balance_sheet[asset_class] += value
+                    break  # Adjust value to the first matching asset class
+
+        return adjusted_balance_sheet
+
+    def management_buyout(self):
+        strong_management = {
+            shareholder: position for shareholder, position in self.shareholders.items()
+            if len(shareholder.split()) == 2  # Filtering based on a simple criterion (can be modified)
+        }
+        weak_management = set(self.shareholders.keys()) - set(strong_management.keys())
+
+        for weak_member in weak_management:
+            del self.shareholders[weak_member]
+
+        print("Strong Management Members after Buyout:")
+        for shareholder, position in strong_management.items():
+            print(f"{shareholder} - {position}")
+
+    def discounted_cash_flow(self, discount_rate=0.1):
+        total_cash_flow = sum(self.values)
+        dcf = total_cash_flow / ((1 + discount_rate) ** len(self.values))
+        print(f"Discounted Cash Flow (DCF): {dcf}")
+
+    def killzone(self):
+        volatility = 0.05  # 5.0% volatility
+        while volatility <= 0.095:  # 9.5% volatility
+            if volatility == 0.095:
+                print("Resistance for volatility reached at 9.5% - Killzone active!")
+            else:
+                print(f"Resistance for volatility at {volatility * 100:.1f}%")
+            volatility += 0.005  # Increment by 0.5% for each iteration
+
+    def slippage_acquisition(self):
+        acquisition_cost = sum(self.values)
+        slippage_percentage = 0.05  # Simulating 5% slippage
+
+        adjusted_acquisition_cost = acquisition_cost * (1 + slippage_percentage)
+        print(f"Adjusted Acquisition Cost considering 5% slippage: {adjusted_acquisition_cost}")
+
+    def creditors(self):
+        total_principal_value = sum(self.market_creditors.values())
+        company_leverage = 70 * total_principal_value
+        print(f"Company's market creditors' total principal value: {total_principal_value}")
+        print(f"Company leverage at 70x of principal value: {company_leverage}")
+
+# Example usage:
+values = [800000, 1500000, 400000, 250000, 600000]
+lbo = LeveragedBuyout(values)
+
+adjusted_sheet = lbo.adjust_asset_classes()
+print("Adjusted Balance Sheet:")
+for asset_class, size in adjusted_sheet.items():
+    print(f"{asset_class}: {size}")
+
+lbo.management_buyout()
+
+lbo.discounted_cash_flow()
+
+print("Checking Volatility Resistance:")
+lbo.killzone()
+
+print("Simulating Slippage in Acquisition:")
+lbo.slippage_acquisition()
+
+print("Market Creditors and Leverage:")
+lbo.creditors()
