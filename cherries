@@ -1,0 +1,166 @@
+"""
+Created on Sun Dec 24 07:14:38 2023
+
+@author: Jonathan B. Samuel
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.integrate as integrate
+
+# Add the definitions and calculations here
+
+def numerical_derivative(y_values, dt):
+    return np.gradient(y_values, dt)
+
+def logistic_map_with_shipping(r, x0, shipping_cost, num_steps):
+    x_values = [float(x0)]  # Ensure x0 is a float
+    for _ in range(num_steps - 1):
+        xn = x_values[-1]  # Use the last element in the list
+
+        # Ensure all variables involved in the calculation are of float type
+        try:
+            # Handle r as a sequence (list or tuple)
+            if isinstance(r, (list, tuple)):
+                if len(r) > 0:
+                    r_value = float(r[0])  # Use the first element if it's a sequence
+                else:
+                    raise ValueError("r list is empty.")
+            else:
+                r_value = float(r)
+
+            xn_value = float(xn)
+
+            # Handle shipping_cost as a sequence (list or tuple)
+            if isinstance(shipping_cost, (list, tuple)):
+                if len(shipping_cost) > 0:
+                    shipping_cost_value = float(shipping_cost[0])  # Use the first element if it's a sequence
+                else:
+                    raise ValueError("Shipping cost list is empty.")
+            else:
+                shipping_cost_value = float(shipping_cost)
+
+            xnext = r_value * xn_value / (shipping_cost_value * xn_value)
+        except (ZeroDivisionError, ValueError) as e:
+            # Handle division by zero or conversion errors gracefully
+            print(f"Error: {e}")
+            xnext = 0.0
+
+        x_values.append(xnext)
+
+    return x_values
+
+def generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps):
+    financial_data = []
+    for r in r_values:
+        for x0 in x0_sequence:
+            for shipping_cost in shipping_costs:
+                x_values = logistic_map_with_shipping(r, x0, shipping_cost, num_steps)
+                financial_data.append(x_values)
+    return np.array(financial_data)
+
+def calculate_factorial_percentile(x, percentile):
+    # Replace this with the actual implementation
+    return np.percentile(x, percentile * 100)
+
+def create_sum_null_matrix(matrix):
+    # Replace this with the actual implementation
+    return np.sum(matrix)
+
+def create_null_matrix(n, m):
+    # Replace this with the actual implementation
+    return np.zeros((n, m))
+
+def calculate_average(array):
+    return np.average(array)
+
+def mode_std_deviation(financial_data):
+    # Calculate the standard deviation of each financial sequence
+    std_deviation_values = np.std(financial_data, axis=1)
+
+    # Calculate the Sharpe ratio for each financial sequence
+    sharpe_ratio_values = calculate_average(financial_data) / std_deviation_values
+
+    # Calculate the mode of the Sharpe ratio values
+    mode_sharpe_ratio = np.median(sharpe_ratio_values)
+
+    return mode_sharpe_ratio
+
+def rotational_kinematics(price_variance, mode_std_deviation):
+    # Replace this with the actual implementation
+    return price_variance * mode_std_deviation
+
+def main():
+    # Set the parameters for the logistic map, shipping costs, and time steps
+    r_values = [2.5, 3.2, 3.5, 3.8]
+    x0_sequence = [0.2, 0.5, 0.8]
+    shipping_costs = [0, 0.1, 0.2]  # Add different shipping costs here
+    num_steps = 100
+    dt = 1.0  # Time step
+
+    # Generate financial data for perpetual, swing, commodities, stock, bonds, and debt
+    financial_data_perpetual = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+    financial_data_swing = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+    financial_data_commodities = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+    financial_data_stock = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+    financial_data_bonds = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+    financial_data_debt = generate_financial_data_with_shipping(r_values, x0_sequence, shipping_costs, num_steps)
+
+    # Calculate the frictional force of financial sequences and their scale of returns to the price factorial in the industry
+    frictional_force_perpetual = []
+    frictional_force_swing = []
+    frictional_force_commodities = []
+    frictional_force_stock = []
+    frictional_force_bonds = []
+    frictional_force_debt = []
+
+    # Calculate the total number of iterations
+    total_iterations = len(r_values) * len(x0_sequence) * len(shipping_costs)
+
+    for i in range(total_iterations):
+        # Calculate indices for each list
+        r_index = i % len(r_values)
+        x0_index = (i // len(r_values)) % len(x0_sequence)
+        shipping_cost_index = i // (len(r_values) * len(x0_sequence))
+
+        # Assuming the calculate_factorial_percentile function is implemented correctly
+        percentile_perpetual = calculate_factorial_percentile(financial_data_perpetual[i], 0.8)
+        frictional_force_perpetual.append(percentile_perpetual)
+
+        percentile_swing = calculate_factorial_percentile(financial_data_swing[i], 0.8)
+        frictional_force_swing.append(percentile_swing)
+
+        percentile_commodities = calculate_factorial_percentile(financial_data_commodities[i], 0.8)
+        frictional_force_commodities.append(percentile_commodities)
+
+        percentile_stock = calculate_factorial_percentile(financial_data_stock[i], 0.8)
+        frictional_force_stock.append(percentile_stock)
+
+        percentile_bonds = calculate_factorial_percentile(financial_data_bonds[i], 0.8)
+        frictional_force_bonds.append(percentile_bonds)
+
+        percentile_debt = calculate_factorial_percentile(financial_data_debt[i], 0.8)
+        frictional_force_debt.append(percentile_debt)
+
+    # Create the price differentiation of the market value of asset classes
+    sum_null_matrix_perpetual = create_sum_null_matrix(frictional_force_perpetual)
+    sum_null_matrix_swing = create_sum_null_matrix(frictional_force_swing)
+    sum_null_matrix_commodities = create_sum_null_matrix(frictional_force_commodities)
+    sum_null_matrix_stock = create_sum_null_matrix(frictional_force_stock)
+    sum_null_matrix_bonds = create_sum_null_matrix(frictional_force_bonds)
+    sum_null_matrix_debt = create_sum_null_matrix(frictional_force_debt)
+
+    # Calculate the mode_std_deviation for each financial sequence
+    mode_std_deviation_perpetual = mode_std_deviation(financial_data_perpetual)
+    mode_std_deviation_swing = mode_std_deviation(financial_data_swing)
+    mode_std_deviation_commodities = mode_std_deviation(financial_data_commodities)
+    mode_std_deviation_stock = mode_std_deviation(financial_data_stock)
+    mode_std_deviation_bonds = mode_std_deviation(financial_data_bonds)
+    mode_std_deviation_debt = mode_std_deviation(financial_data_debt)
+
+    # ... (rest of the code as before)
+
+if __name__ == "__main__":
+    main()
+
+
