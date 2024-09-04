@@ -1,0 +1,94 @@
+"""
+Created on Sun Dec 24 08:23:04 2023
+
+@author: Jonathan B. Samuel
+"""
+
+class BankAccount:
+    def __init__(self, account_holder, initial_balance=0):
+        self.account_holder = account_holder
+        self.checking_balance = initial_balance
+        self.savings_balance = initial_balance
+        self.investment_balance = initial_balance
+
+    def deposit(self, account_type, amount):
+        if amount > 0:
+            if account_type == 'checking':
+                self.checking_balance += amount
+            elif account_type == 'savings':
+                self.savings_balance += amount
+            elif account_type == 'investment':
+                self.investment_balance += amount
+            else:
+                print("Invalid account type.")
+        else:
+            print("Invalid deposit amount.")
+
+    def withdraw(self, account_type, amount):
+        if amount > 0:
+            if account_type == 'checking' and self.checking_balance >= amount:
+                self.checking_balance -= amount
+            elif account_type == 'savings' and self.savings_balance >= amount:
+                self.savings_balance -= amount
+            elif account_type == 'investment' and self.investment_balance >= amount:
+                self.investment_balance -= amount
+            else:
+                print("Insufficient funds.")
+        else:
+            print("Invalid withdrawal amount.")
+
+    def transfer(self, from_account, to_account, amount):
+        if from_account in ['checking', 'savings', 'investment'] and to_account in ['checking', 'savings', 'investment']:
+            if from_account != to_account:
+                if from_account == 'checking' and self.checking_balance >= amount:
+                    self.checking_balance -= amount
+                    if to_account == 'savings':
+                        self.savings_balance += amount
+                    elif to_account == 'investment':
+                        self.investment_balance += amount
+                elif from_account == 'savings' and self.savings_balance >= amount:
+                    self.savings_balance -= amount
+                    if to_account == 'checking':
+                        self.checking_balance += amount
+                    elif to_account == 'investment':
+                        self.investment_balance += amount
+                elif from_account == 'investment' and self.investment_balance >= amount:
+                    self.investment_balance -= amount
+                    if to_account == 'checking':
+                        self.checking_balance += amount
+                    elif to_account == 'savings':
+                        self.savings_balance += amount
+                else:
+                    print("Insufficient funds.")
+            else:
+                print("Cannot transfer within the same account type.")
+        else:
+            print("Invalid account types for transfer.")
+
+    def display_balance(self, account_type):
+        if account_type == 'checking':
+            return f"Checking Balance: ${self.checking_balance}"
+        elif account_type == 'savings':
+            return f"Savings Balance: ${self.savings_balance}"
+        elif account_type == 'investment':
+            return f"Investment Balance: ${self.investment_balance}"
+        else:
+            return "Invalid account type."
+
+# Example usage
+user_account = BankAccount(account_holder="John Doe", initial_balance=1000)
+
+user_account.deposit('checking', 500)
+user_account.deposit('savings', 1000)
+user_account.deposit('investment', 2000)
+
+user_account.withdraw('checking', 200)
+user_account.withdraw('savings', 300)
+user_account.withdraw('investment', 500)
+
+user_account.transfer('checking', 'savings', 100)
+user_account.transfer('investment', 'checking', 300)
+
+print(user_account.display_balance('checking'))
+print(user_account.display_balance('savings'))
+print(user_account.display_balance('investment'))
