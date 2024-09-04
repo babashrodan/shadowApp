@@ -1,0 +1,357 @@
+"""
+Created on Fri Dec 29 17:58:08 2023
+
+@author: Jonathan B. Samuel
+"""
+
+class UniversalSecuritiesTrading:
+    def __init__(self):
+        # Initialize data structures to store various securities
+        self.stocks = {}
+        self.bonds = {}
+        self.debt_securities = {}
+        self.perpetuals = {}
+        self.futures = {}
+        self.commodities = {}
+        self.infrastructure_securities = {}
+        self.foreign_direct_investment = {}
+
+    def buy(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement the buy functionality for the specified security type
+        # Update the respective data structure with the transaction details
+        transaction = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'stocks':
+            self.stocks.setdefault(symbol, []).append(transaction)
+        elif security_type == 'bonds':
+            self.bonds.setdefault(symbol, []).append(transaction)
+        # Add similar logic for other security types
+
+    def sell(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement the sell functionality for the specified security type
+        # Update the respective data structure with the transaction details
+        transaction = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'stocks':
+            self.stocks.setdefault(symbol, []).append(transaction)
+        elif security_type == 'bonds':
+            self.bonds.setdefault(symbol, []).append(transaction)
+        # Add similar logic for other security types
+
+    def get_portfolio(self, security_type):
+        # Return the portfolio details for the specified security type
+        if security_type == 'stocks':
+            return self.stocks
+        elif security_type == 'bonds':
+            return self.bonds
+        # Add similar logic for other security types
+
+
+# Example Usage:
+trading_system = UniversalSecuritiesTrading()
+
+# Buy and sell stocks
+trading_system.buy('stocks', 'AAPL', 10, 150.0)
+trading_system.sell('stocks', 'AAPL', 5, 160.0)
+
+# Buy and sell bonds
+trading_system.buy('bonds', 'XYZ', 20, 1000.0)
+trading_system.sell('bonds', 'XYZ', 10, 1050.0)
+
+# Display the current portfolio
+print("Stocks Portfolio:")
+print(trading_system.get_portfolio('stocks'))
+
+print("\nBonds Portfolio:")
+print(trading_system.get_portfolio('bonds'))
+
+class UniversalSecuritiesTrading:
+    def __init__(self):
+        # Initialize data structures to store various securities
+        self.stocks = {}
+        self.bonds = {}
+        self.debt_securities = {}
+        self.perpetuals = {}
+        self.futures = {}
+        self.commodities = {}
+        self.infrastructure_securities = {}
+        self.foreign_direct_investment = {}
+
+    def buy(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement the buy functionality for the specified security type
+        # Update the respective data structure with the transaction details
+        transaction = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'stocks':
+            self.stocks.setdefault(symbol, []).append(transaction)
+        elif security_type == 'bonds':
+            self.bonds.setdefault(symbol, []).append(transaction)
+        # Add similar logic for other security types
+
+    def sell(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement the sell functionality for the specified security type
+        # Update the respective data structure with the transaction details
+        transaction = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'stocks':
+            self.stocks.setdefault(symbol, []).append(transaction)
+        elif security_type == 'bonds':
+            self.bonds.setdefault(symbol, []).append(transaction)
+        # Add similar logic for other security types
+
+    def get_portfolio(self, security_type):
+        # Return the portfolio details for the specified security type
+        if security_type == 'stocks':
+            return self.stocks
+        elif security_type == 'bonds':
+            return self.bonds
+        # Add similar logic for other security types
+
+
+class MarketMaking(UniversalSecuritiesTrading):
+    def quote_price(self, security_type, symbol, side, quantity, currency='USD'):
+        # Implement quoting functionality for buying and selling prices
+        # Consider factors like market conditions, inventory, and risk
+
+        # For simplicity, using a fixed spread for illustration
+        spread = 0.5  # Adjust the spread based on market conditions
+
+        if side == 'buy':
+            return self.get_last_price(security_type, symbol) - spread
+        elif side == 'sell':
+            return self.get_last_price(security_type, symbol) + spread
+
+    def get_last_price(self, security_type, symbol):
+        # Return the last traded price for the specified security
+        if security_type == 'stocks':
+            last_prices = [transaction['price'] for transaction in self.stocks.get(symbol, [])]
+        elif security_type == 'bonds':
+            last_prices = [transaction['price'] for transaction in self.bonds.get(symbol, [])]
+
+        if last_prices:
+            return last_prices[-1]
+        else:
+            return None
+
+
+def market_spread(market_maker, security_type, symbol, quantity=1, currency='USD'):
+    # Calculate the market spread for the specified security
+    buy_price = market_maker.quote_price(security_type, symbol, 'buy', quantity, currency)
+    sell_price = market_maker.quote_price(security_type, symbol, 'sell', quantity, currency)
+
+    return sell_price - buy_price
+
+
+# Example Usage:
+market_maker = MarketMaking()
+
+# Buy and sell stocks
+market_maker.buy('stocks', 'AAPL', 10, 150.0)
+market_maker.sell('stocks', 'AAPL', 5, 160.0)
+
+# Buy and sell bonds
+market_maker.buy('bonds', 'XYZ', 20, 1000.0)
+market_maker.sell('bonds', 'XYZ', 10, 1050.0)
+
+# Quote prices and market spread
+print("\nStocks Quote Prices:")
+print("Buy Price:", market_maker.quote_price('stocks', 'AAPL', 'buy'))
+print("Sell Price:", market_maker.quote_price('stocks', 'AAPL', 'sell'))
+print("Market Spread:", market_spread(market_maker, 'stocks', 'AAPL'))
+
+print("\nBonds Quote Prices:")
+print("Buy Price:", market_maker.quote_price('bonds', 'XYZ', 'buy'))
+print("Sell Price:", market_maker.quote_price('bonds', 'XYZ', 'sell'))
+print("Market Spread:", market_spread(market_maker, 'bonds', 'XYZ'))
+class Underwrite(UniversalSecuritiesTrading):
+    def underwrite_security(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement underwriting functionality for new securities
+        # Update the respective data structure with the underwriting details
+        underwriting = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'tokens':
+            self.tokens.setdefault(symbol, []).append(underwriting)
+        # Add similar logic for other security types
+
+    def sell_underwritten_security(self, security_type, symbol, quantity, price, currency='USD'):
+        # Implement selling functionality for underwritten securities
+        # Update the respective data structure with the transaction details
+        transaction = {'quantity': quantity, 'price': price, 'currency': currency}
+        if security_type == 'tokens':
+            self.tokens.setdefault(symbol, []).append(transaction)
+        # Add similar logic for other security types
+
+
+# Example Usage:
+underwriter = Underwrite()
+
+# Underwrite new tokens
+underwriter.underwrite_security('tokens', 'XYZ Token', 1000, 1.0)
+
+# Sell underwritten tokens
+underwriter.sell_underwritten_security('tokens', 'XYZ Token', 500, 1.5)
+
+# Print the portfolio of underwritten tokens
+print("\nUnderwritten Tokens Portfolio:")
+print(underwriter.get_portfolio('tokens'))
+
+class AdvisoryServices:
+    def __init__(self):
+        self.investment_needs = []
+
+    def submit_investment_needs(self, customer_id, needs):
+        # Customer submits their investment needs
+        self.investment_needs.append({'customer_id': customer_id, 'needs': needs})
+
+    def evaluate_investment_needs(self):
+        # Evaluate and provide investment advice based on customer needs
+        # Implement your advisory logic here
+        advice = "Here is your investment advice based on your needs."
+        return advice
+
+    def manage_portfolio(self, customer_id, portfolio):
+        # Manage the portfolio for the customer
+        # Implement your portfolio management logic here
+        management_result = "Portfolio managed successfully."
+        return management_result
+
+    def financial_planning(self, customer_id, entry_exit_plan):
+        # Provide financial planning for entries and exits
+        # Implement your financial planning logic here
+        planning_result = "Financial planning completed successfully."
+        return planning_result
+
+
+# Example Usage:
+advisory_service = AdvisoryServices()
+
+# Submit investment needs
+advisory_service.submit_investment_needs(1, "I'm looking for long-term growth with moderate risk.")
+
+# Evaluate and provide investment advice
+advice = advisory_service.evaluate_investment_needs()
+print("\nInvestment Advice:")
+print(advice)
+
+# Manage portfolio for a customer
+management_result = advisory_service.manage_portfolio(1, {'stocks': 50, 'bonds': 50})
+print("\nPortfolio Management Result:")
+print(management_result)
+
+# Provide financial planning for entries and exits
+planning_result = advisory_service.financial_planning(1, "Buy more stocks in Q1, exit bonds in Q3.")
+print("\nFinancial Planning Result:")
+print(planning_result)
+
+class Research:
+    def __init__(self):
+        # Dictionaries to store investment data
+        self.stock_data = {'AAPL': 150, 'GOOGL': 250, 'MSFT': 180}
+        self.bond_data = {'Government': 3.5, 'Corporate': 4.2, 'Municipal': 2.8}
+        self.commodities_data = {'Gold': 1800, 'Oil': 75, 'Silver': 25}
+        self.forex_data = {'USD/EUR': 0.85, 'USD/JPY': 110.5, 'GBP/USD': 1.36}
+
+    def deploy_funds(self, asset_type, asset_symbol, amount):
+        # Deploy funds into the market
+        # Implement your deployment logic here
+        deployment_result = f"{amount} funds deployed into {asset_type} - {asset_symbol}."
+        return deployment_result
+
+
+# Example Usage:
+research = Research()
+
+# Access and print investment data
+print("\nStock Data:")
+print(research.stock_data)
+
+print("\nBond Data:")
+print(research.bond_data)
+
+print("\nCommodities Data:")
+print(research.commodities_data)
+
+print("\nForex Data:")
+print(research.forex_data)
+
+# Deploy funds into the market
+deployment_result = research.deploy_funds('Stock', 'AAPL', 100000)
+print("\nDeployment Result:")
+print(deployment_result)
+
+class CustodyClearing:
+    def __init__(self):
+        # Dictionary to store client holdings
+        self.client_holdings = {}
+
+    def custodial_service(self, client_id, asset_type, asset_symbol, quantity):
+        # Custodial service to hold securities on behalf of clients
+        if client_id not in self.client_holdings:
+            self.client_holdings[client_id] = {}
+
+        if asset_type not in self.client_holdings[client_id]:
+            self.client_holdings[client_id][asset_type] = {}
+
+        if asset_symbol not in self.client_holdings[client_id][asset_type]:
+            self.client_holdings[client_id][asset_type][asset_symbol] = 0
+
+        self.client_holdings[client_id][asset_type][asset_symbol] += quantity
+
+        return f"{quantity} {asset_type} - {asset_symbol} held for Client {client_id}."
+
+    def clearing_mechanism(self, client_id):
+        # Clearing mechanism to process transactions and clear holdings
+        if client_id in self.client_holdings:
+            del self.client_holdings[client_id]
+            return f"Holdings cleared for Client {client_id}."
+        else:
+            return f"No holdings found for Client {client_id}."
+
+    def settlement_tool(self, client_id):
+        # Settlement tool to finalize transactions and settlements
+        # Implement your settlement logic here
+        settlement_result = f"Settlement completed for Client {client_id}."
+        return settlement_result
+
+
+# Example Usage:
+custody_clearing = CustodyClearing()
+
+# Custodial service
+print(custody_clearing.custodial_service('123', 'Stock', 'AAPL', 50))
+
+# Clearing mechanism
+print(custody_clearing.clearing_mechanism('123'))
+
+# Settlement tool
+print(custody_clearing.settlement_tool('123'))
+
+class Compliance:
+    def __init__(self):
+        # Dictionary to store compliance rules for different jurisdictions
+        self.compliance_rules = {}
+
+    def add_compliance_rule(self, jurisdiction, rule):
+        # Add compliance rules for a specific jurisdiction
+        if jurisdiction not in self.compliance_rules:
+            self.compliance_rules[jurisdiction] = []
+
+        self.compliance_rules[jurisdiction].append(rule)
+
+    def check_compliance(self, jurisdiction, transaction_type):
+        # Check compliance based on jurisdiction and transaction type
+        if jurisdiction in self.compliance_rules:
+            if transaction_type in self.compliance_rules[jurisdiction]:
+                return f"Transaction is compliant with {jurisdiction} laws."
+            else:
+                return f"Transaction is not compliant with {jurisdiction} laws for {transaction_type}."
+        else:
+            return f"No compliance rules found for {jurisdiction}."
+
+# Example Usage:
+compliance_checker = Compliance()
+
+# Add compliance rules for a specific jurisdiction
+compliance_checker.add_compliance_rule("Local", "Securities Trading")
+compliance_checker.add_compliance_rule("State", "Securities Trading")
+compliance_checker.add_compliance_rule("Federal", "Securities Trading")
+compliance_checker.add_compliance_rule("International", "Foreign Direct Investment")
+
+# Check compliance for a transaction
+print(compliance_checker.check_compliance("Local", "Securities Trading"))
+print(compliance_checker.check_compliance("State", "Foreign Direct Investment"))
