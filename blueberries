@@ -1,0 +1,57 @@
+"""
+Created on Sun Dec 24 07:08:20 2023
+
+@author: Jonathan B. Samuel
+"""
+
+def logistic_map_with_time(r, x0, num_steps, time_step):
+    x_values = [x0]
+    for _ in range(num_steps - 1):
+        x_n = x_values[-1]
+        x_next = r * x_n * (1 - x_n)
+        x_values.append(x_next)
+    time_values = [time_step * step for step in range(num_steps)]
+    return time_values, x_values
+
+def compound_investment_with_logistic_map(i, x, r, n, t, num_steps, time_step):
+    """
+    Calculate the compound investment of individuals and/or communities (CIIC)
+    with logistic mapping integration and numerical sequencing over time.
+
+    Parameters:
+    i (float): The collective independent investment capital.
+    x (int): The volume of individuals and/or communities by increment of 1.
+    r (float): Average interactions per person in the capital market.
+    n (int): The number of transactional interactions maintained within the market at $ value.
+    t (float): Physical time used in the market network (24/7 hour open market).
+    num_steps (int): The number of steps to iterate the logistic map.
+    time_step (float): Time step between each iteration.
+
+    Returns:
+    list: The time sequence for stocks from entrance to exit of the trading day.
+    list: The corresponding logistic mapping values at each time step.
+    """
+    x0 = x / i
+    time_values, logistic_values = logistic_map_with_time(r, x0, num_steps, time_step)
+    logistic_factor = logistic_values[-1]
+
+    compound_factor = (1 + logistic_factor + (r / n)) ** (n / t)
+    ciic = i * compound_factor
+
+    # Scale the time sequence to represent the trading day
+    time_sequence = [time_value * t for time_value in time_values]
+
+    return time_sequence, logistic_values
+
+# Example usage
+i = 100000  # Collective independent investment capital
+x = 10  # Volume of individuals and/or communities
+r = 0.2  # Average interactions per person in the capital market
+n = 1000  # Number of transactional interactions maintained within the market at $ value
+t = 24 * 365  # Physical time used in the market network (24/7 hour open market)
+num_steps = 100  # Number of steps to iterate the logistic map
+time_step = 1 / 100  # Time step between each iteration (0 to 1)
+
+time_sequence, logistic_values = compound_investment_with_logistic_map(i, x, r, n, t, num_steps, time_step)
+print("Time Sequence for Stocks (Trading Day):", time_sequence)
+print("Logistic Mapping Values at Each Time Step:", logistic_values)
