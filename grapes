@@ -1,0 +1,52 @@
+"""
+Created on Sun Dec 24 08:24:44 2023
+
+@author: Jonathan B. Samuel
+"""
+import math
+import matplotlib.pyplot as plt
+
+def logistic_map(r, x0, num_steps):
+    x_values = [x0 + 1]
+    for _ in range(num_steps - 1):
+        xn = x_values[-1]
+        xnext = r * xn * (1 - xn)
+        x_values.append(xnext)
+    return x_values
+
+def calculate_factorial_percentile(x_values):
+    # Calculate the factorial of the average of positive and negative values
+    pos_values = [x for x in x_values if x >= 0]
+    neg_values = [x for x in x_values if x < 0]
+
+    avg_pos = sum(pos_values) / len(pos_values) if pos_values else 0
+    avg_neg = sum(neg_values) / len(neg_values) if neg_values else 0
+
+    avg_pos_neg = (avg_pos + avg_neg) / 2
+    factorial_avg = math.factorial(abs(int(avg_pos_neg)))
+
+    return factorial_avg
+
+def plot_logistic_map(r_values, x0, num_steps):
+    for r in r_values:
+        x_values = logistic_map(r, x0, num_steps)
+        plt.plot([r] * num_steps, x_values, 'b.', markersize=1)
+
+    plt.xlabel('r')
+    plt.ylabel('x')
+    plt.title('Logistic Map')
+    plt.show()
+
+if __name__ == "__main__":
+    # Set the parameters for the logistic map
+    r_values = [2.5, 3.2, 3.5, 3.8]
+    x0 = -0.5  # Can use negative values and imaginary numbers
+    num_steps = 1000
+
+    # Plot the logistic map for the specified values of r
+    plot_logistic_map(r_values, x0, num_steps)
+
+    # Calculate the factorial percentile of the logistic map results
+    x_values = logistic_map(r_values[0], x0, num_steps)
+    factorial_percentile = calculate_factorial_percentile(x_values)
+    print("Factorial Percentile:", factorial_percentile)
