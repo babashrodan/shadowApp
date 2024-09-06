@@ -1,0 +1,204 @@
+pip install requests scipy numpy matplotlib
+from scipy.stats import norm
+from math import log, sqrt, exp
+import requests
+
+def black_scholes(call_put_flag, S, K, T, r, d, v):
+    d1 = (log(float(S)/K) + ((r - d) + v*v/2.) * T) / (v * sqrt(T))
+    d2 = d1 - v * sqrt(T)
+    if call_put_flag == 'c':
+        return S * exp(-d * T) * norm.cdf(d1) - K * exp(-r * T) * norm.cdf(d2)
+    else:
+        return K * exp(-r * T) * norm.cdf(-d2) - S * exp(-d * T) * norm.cdf(-d1)
+
+def calculate_capital_allocation(v):
+    min_allocation = 5.5
+    max_allocation = 9.5
+    allocation = min_allocation + ((max_allocation - min_allocation) * (v / 0.5)) # assuming v=0.5 is high volatility
+    return min(max_allocation, max(min_allocation, allocation))
+ALPHA_VANTAGE_API_KEY = 'your_api_key'
+
+def get_market_data(symbol):
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+
+    if "Global Quote" in data:
+        price = float(data["Global Quote"]["05. price"])
+        return price
+    else:
+        raise Exception("Error fetching market data")
+
+def get_volatility(symbol):
+    # For simplicity, we'll fetch the historical data and calculate historical volatility
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+
+    if "Time Series (Daily)" in data:
+        prices = [float(value['4. close']) for (key, value) in data["Time Series (Daily)"].items()]
+        log_returns = [log(prices[i] / prices[i-1]) for i in range(1, len(prices))]
+        volatility = sqrt(252) * np.std(log_returns)  # Annualized volatility
+        return volatility
+    else:
+        raise Exception("Error fetching volatility data")
+import time
+
+def deploy_capital(symbol, K, T, r, d):
+    try:
+        # Fetch real-time data
+        S = get_market_data(symbol)
+        v = get_volatility(symbol)
+
+        # Calculate capital allocation based on volatility
+        allocation_percentage = calculate_capital_allocation(v)
+        capital_to_deploy = allocation_percentage / 100
+
+        # Execute a mock trade based on the calculated capital allocation
+        execute_trade(S, K, capital_to_deploy, v)
+
+    except Exception as e:
+        print(f"Error in deploying capital: {str(e)}")
+
+def execute_trade(S, K, capital_to_deploy, v):
+    # This function will simulate a trade execution
+    # In a real-world application, you would integrate this with a trading platform API
+
+    option_price = black_scholes('c', S, K, 1, 0.05, 0.0, v)
+    deployed_capital_value = capital_to_deploy * option_price
+    print(f"Executing trade with capital deployment: ${deployed_capital_value:.2f} at option price: ${option_price:.2f}")
+
+# Run the automation process at regular intervals (e.g., every hour)
+def automate_trading_process(symbol, K, T, r, d, interval=3600):
+    while True:
+        deploy_capital(symbol, K, T, r, d)
+        time.sleep(interval)  # Wait for the next cycle
+
+# Example usage
+automate_trading_process(symbol='AAPL', K=150, T=1, r=0.05, d=0.0)
+from scipy.stats import norm
+from math import log, sqrt, exp
+
+def black_scholes(call_put_flag, S, K, T, r, d, v):
+    d1 = (log(float(S)/K) + ((r - d) + v*v/2.) * T) / (v * sqrt(T))
+    d2 = d1 - v * sqrt(T)
+    if call_put_flag == 'c':
+        return S * exp(-d * T) * norm.cdf(d1) - K * exp(-r * T) * norm.cdf(d2)
+    else:
+        return K * exp(-r * T) * norm.cdf(-d2) - S * exp(-d * T) * norm.cdf(-d1)
+import random
+
+# Example Parameters
+S = 100  # Current Stock Price
+K = 100  # Strike Price
+T = 1    # Time to maturity (1 year)
+r = 0.05 # Risk-free interest rate
+d = 0.0  # Dividend yield
+v = 0.2  # Volatility (e.g., 20%)
+
+# Function to determine capital allocation percentage based on volatility
+def calculate_capital_allocation(v):
+    # Use Black-Scholes to get a theoretical value (not directly used for allocation)
+    option_price = black_scholes('c', S, K, T, r, d, v)
+    
+    # Capital allocation logic
+    min_allocation = 5.5
+    max_allocation = 9.5
+    
+    # Simple mapping: higher volatility => higher allocation within the specified range
+    allocation = min_allocation + ((max_allocation - min_allocation) * (v / 0.5)) # assuming v=0.5 is high volatility
+    return min(max_allocation, max(min_allocation, allocation))
+
+allocation_percentage = calculate_capital_allocation(v)
+print(f"Capital allocation percentage based on volatility: {allocation_percentage}%")
+def deploy_capital(call_put_flag, S, K, T, r, d, v):
+    allocation = calculate_capital_allocation(v)
+    capital_to_deploy = allocation / 100  # Convert percentage to a fraction
+
+    # Here you would integrate this into your ERC-1155 contract logic
+    # For instance, use the capital_to_deploy value to manage liquidity or execute trades
+    print(f"Deploying {capital_to_deploy * 100}% of capital based on current volatility.")
+
+    # Example logic to integrate with your existing ERC-1155 contract functions
+    # This could be a function that interacts with the blockchain, trading APIs, or internal systems
+    execute_trade(S, K, capital_to_deploy)
+
+def execute_trade(S, K, capital_to_deploy):
+    # Placeholder function where you would execute your trade
+    # For example, interacting with a public stock exchange API or a blockchain smart contract
+    print(f"Executing trade with stock price {S}, strike price {K}, and capital deployment {capital_to_deploy}.")
+
+import requests
+from scipy.stats import norm
+from math import log, sqrt, exp
+import time
+
+ALPHA_VANTAGE_API_KEY = 'your_api_key'
+
+# Black-Scholes function
+def black_scholes(call_put_flag, S, K, T, r, d, v):
+    d1 = (log(float(S)/K) + ((r - d) + v*v/2.) * T) / (v * sqrt(T))
+    d2 = d1 - v * sqrt(T)
+    if call_put_flag == 'c':
+        return S * exp(-d * T) * norm.cdf(d1) - K * exp(-r * T) * norm.cdf(d2)
+    else:
+        return K * exp(-r * T) * norm.cdf(-d2) - S * exp(-d * T) * norm.cdf(-d1)
+
+# Capital Allocation function based on volatility
+def calculate_capital_allocation(v):
+    min_allocation = 5.5
+    max_allocation = 9.5
+    allocation = min_allocation + ((max_allocation - min_allocation) * (v / 0.5))
+    return min(max_allocation, max(min_allocation, allocation))
+
+# Get market data using Alpha Vantage API
+def get_market_data(symbol):
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+    if "Global Quote" in data:
+        price = float(data["Global Quote"]["05. price"])
+        return price
+    else:
+        raise Exception("Error fetching market data")
+
+# Get volatility using historical data from Alpha Vantage API
+def get_volatility(symbol):
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+    if "Time Series (Daily)" in data:
+        prices = [float(value['4. close']) for (key, value) in data["Time Series (Daily)"].items()]
+        log_returns = [log(prices[i] / prices[i-1]) for i in range(1, len(prices))]
+        volatility = sqrt(252) * np.std(log_returns)  # Annualized volatility
+        return volatility
+    else:
+        raise Exception("Error fetching volatility data")
+
+# Deploy capital across different countries
+def deploy_capital(df):
+    for index, row in df.iterrows():
+        country = row['Countries']
+        symbol = 'AAPL'  # Replace with the correct symbol for each country's proxy or sovereign wealth fund
+        try:
+            # Fetch real-time data
+            S = get_market_data(symbol)
+            v = get_volatility(symbol)
+
+            # Calculate capital allocation
+            allocation_percentage = calculate_capital_allocation(v)
+            capital_to_deploy = allocation_percentage / 100
+
+            # Execute trade
+            execute_trade(country, S, capital_to_deploy, v)
+
+        except Exception as e:
+            print(f"Error deploying capital for {country}: {str(e)}")
+
+def execute_trade(country, S, capital_to_deploy, v):
+    option_price = black_scholes('c', S, 100, 1, 0.05, 0.0, v)
+    deployed_capital_value = capital_to_deploy * option_price
+    print(f"{country}: Executing trade with capital deployment: ${deployed_capital_value:.2f} at option price: ${option_price:.2f}")
+
+# Run the capital deployment process
+deploy_capital(df)
