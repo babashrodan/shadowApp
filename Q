@@ -1,0 +1,107 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the data
+df = pd.read_csv('Real World - Sheet1.csv')
+
+# Preprocessing
+df['PPP'] = df['PPP'].str.replace('$', '').str.replace(',', '').astype(float)
+df['GNI'] = df['GNI'].str.replace('$', '').str.replace(',', '').astype(float)
+df['Global Debt Supply'] = df['Global Debt Supply'].str.replace('$', '').str.replace(',', '').astype(float)
+
+# Calculate additional metrics
+df['GDP_Ratio'] = df['PPP'] / df['GNI']
+df['Debt_to_GDP'] = df['Global Debt Supply'] / df['PPP']
+df['Yield_Rate'] = np.random.uniform(0.5, 10, size=len(df))  # Random yield rates for illustration
+df['Alpha'] = np.random.uniform(0, 1, size=len(df))  # Random alpha for illustration
+df['Sharpe_Ratio'] = np.random.uniform(0, 5, size=len(df))  # Random Sharpe ratio for illustration
+
+# Sort the dataframe
+df_sorted = df.sort_values('Yield_Rate', ascending=False).reset_index(drop=True)
+
+# Set the parameters
+target_yield = 0.58
+total_investment = 150e9  # 150 billion units of ERC-1155 currency
+volatility_lower = 0.055
+volatility_upper = 0.095
+margin_multiplier = 190
+
+# Function to calculate margin based on volatility
+def calculate_margin(volatility):
+    if volatility < volatility_lower or volatility > volatility_upper:
+        return margin_multiplier
+    return 1
+
+# Adjust the yield rates and calculate volatility (using Sharpe ratio as a proxy for volatility)
+df_sorted['Base_Yield_Rate'] = np.maximum(df_sorted['Yield_Rate'], target_yield * 100)
+df_sorted['Volatility'] = df_sorted['Base_Yield_Rate'] / (df_sorted['Sharpe_Ratio'] * 100)
+df_sorted['Margin'] = df_sorted['Volatility'].apply(calculate_margin)
+df_sorted['Adjusted_Yield_Rate'] = df_sorted['Base_Yield_Rate'] * df_sorted['Margin']
+
+# Calculate new investment weights based on the adjusted yield rates
+df_sorted['Inv_Yield_Rate'] = 1 / df_sorted['Adjusted_Yield_Rate']
+total_inv_yield = df_sorted['Inv_Yield_Rate'].sum()
+df_sorted['Investment_Weight'] = df_sorted['Inv_Yield_Rate'] / total_inv_yield
+
+# Calculate the investment amount for each country
+df_sorted['Investment_Amount'] = df_sorted['Investment_Weight'] * total_investment
+
+# Calculate expected return
+df_sorted['Expected_Return'] = df_sorted['Investment_Amount'] * (df_sorted['Adjusted_Yield_Rate'] / 100)
+
+# Display the results
+print("Final Investment Strategy:")
+print(df_sorted[['Countries', 'Volatility', 'Margin', 'Adjusted_Yield_Rate', 'Investment_Weight', 'Investment_Amount', 'Expected_Return']])
+
+# Calculate and display portfolio statistics
+total_investment = df_sorted['Investment_Amount'].sum()
+total_expected_return = df_sorted['Expected_Return'].sum()
+portfolio_yield = (total_expected_return / total_investment) * 100
+portfolio_volatility = (df_sorted['Volatility'] * df_sorted['Investment_Weight']).sum()
+
+print(f"\
+Total Investment: {total_investment:,.2f} ERC-1155 tokens")
+print(f"Total Expected Return: {total_expected_return:,.2f} ERC-1155 tokens")
+print(f"Portfolio Yield: {portfolio_yield:.2f}%")
+print(f"Portfolio Volatility: {portfolio_volatility:.4f}")
+
+# Visualize the investment distribution
+plt.figure(figsize=(15, 10))
+sns.barplot(x='Countries', y='Investment_Amount', data=df_sorted.head(20))
+plt.xticks(rotation=45, ha='right')
+plt.title('Top 20 Countries by Investment Amount')
+plt.xlabel('Countries')
+plt.ylabel('Investment Amount (ERC-1155 tokens)')
+plt.tight_layout()
+plt.show()
+
+# Visualize the expected returns
+plt.figure(figsize=(15, 10))
+sns.barplot(x='Countries', y='Expected_Return', data=df_sorted.head(20))
+plt.xticks(rotation=45, ha='right')
+plt.title('Top 20 Countries by Expected Return')
+plt.xlabel('Countries')
+plt.ylabel('Expected Return (ERC-1155 tokens)')
+plt.tight_layout()
+plt.show()
+
+# Visualize the Volatility and Margin
+plt.figure(figsize=(15, 10))
+sns.scatterplot(x='Volatility', y='Margin', size='Investment_Amount', 
+                hue='Adjusted_Yield_Rate', data=df_sorted.head(20), sizes=(100, 1000))
+plt.title('Top 20 Countries: Volatility vs Margin')
+plt.xlabel('Volatility')
+plt.ylabel('Margin')
+plt.axvline(x=volatility_lower, color='r', linestyle='--', label='Lower Volatility Bound')
+plt.axvline(x=volatility_upper, color='r', linestyle='--', label='Upper Volatility Bound')
+for i, row in df_sorted.head(20).iterrows():
+    plt.annotate(row['Countries'], (row['Volatility'], row['Margin']))
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# Save the results to a CSV file
+df_sorted.to_csv('final_investment_strategy.csv', index=False)
+print("Results saved to 'final_investment_strategy.csv'")
