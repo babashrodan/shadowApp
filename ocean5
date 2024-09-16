@@ -1,0 +1,101 @@
+import requests
+
+class Ocean5:
+    def __init__(self):
+        # Initializing variables for the GDX Index core components
+        self.public_market_health = 400  # out of 400
+        self.global_market_health = 400  # out of 400
+        self.corporate_financial_health = 400  # out of 400
+        self.public_financial_health = 400  # out of 400
+        self.current_index_score = 0
+        self.max_index_score = 1600
+
+    def calculate_index(self):
+        # Calculate GDX Index based on the four health metrics
+        self.current_index_score = (self.public_market_health + self.global_market_health + 
+                                    self.corporate_financial_health + self.public_financial_health)
+        return self.current_index_score
+
+    def evaluate_market_health(self):
+        score = self.calculate_index()
+        if score >= 1200:
+            return "The marketplace is highly positive towards socio-economic growth."
+        elif 800 <= score < 1200:
+            return "The marketplace is stable but has room for improvement."
+        elif 400 <= score < 800:
+            return "The marketplace is underperforming and needs attention."
+        else:
+            return "The marketplace is deteriorating. Immediate action is required."
+
+    def update_health_metrics(self, public_market, global_market, corporate_health, public_health):
+        # Method to update health metrics (real-time data can be integrated here)
+        self.public_market_health = public_market
+        self.global_market_health = global_market
+        self.corporate_financial_health = corporate_health
+        self.public_financial_health = public_health
+
+    def public_trust_factor(self, transparency, consumer_impact):
+        # Method to factor in public trust and transparency metrics
+        trust_score = (transparency + consumer_impact) / 2  # Simplified example
+        return trust_score
+
+    def cfi_initiative_impact(self, public_support, corporate_growth):
+        # Method to calculate the impact of SGMX Common Fund Initiative (CFI)
+        cfi_score = (public_support + corporate_growth) / 2  # Simplified example
+        return cfi_score
+
+    def get_real_time_data(self, api_endpoint):
+        """
+        This function fetches real-time market data and public sentiment
+        from the given API endpoint and integrates it into the health metrics.
+        Example API: A public market sentiment analysis API or any other relevant API
+        """
+        try:
+            response = requests.get(api_endpoint)
+            data = response.json()
+            # Example of how to process the API data and update the index metrics
+            # Assuming API provides market sentiment (0 to 100) and market health (0 to 100)
+            market_sentiment = data.get("market_sentiment", 50)  # Placeholder key
+            market_health = data.get("market_health", 50)  # Placeholder key
+
+            # Example of weighting sentiment and health into the public and global health
+            self.public_market_health = int(400 * (market_sentiment / 100))
+            self.global_market_health = int(400 * (market_health / 100))
+
+            return "Real-time data fetched and applied successfully."
+        except requests.exceptions.RequestException as e:
+            return f"API request failed: {e}"
+
+    def generate_global_health_index(self, api_endpoint=None):
+        """
+        Generates the global health index after optionally integrating real-time data.
+        Returns a dictionary containing detailed metrics and overall GDX Index score.
+        """
+        if api_endpoint:
+            self.get_real_time_data(api_endpoint)
+        
+        index_score = self.calculate_index()
+        market_evaluation = self.evaluate_market_health()
+
+        return {
+            "Public Market Health": self.public_market_health,
+            "Global Market Health": self.global_market_health,
+            "Corporate Financial Health": self.corporate_financial_health,
+            "Public Financial Health": self.public_financial_health,
+            "GDX Index Score": index_score,
+            "Market Evaluation": market_evaluation
+        }
+
+# Example usage of the Ocean5 class
+ocean5 = Ocean5()
+
+# Update real-time health metrics (can be replaced with real-time data fetching via API)
+ocean5.update_health_metrics(public_market=380, global_market=390, corporate_health=370, public_health=360)
+
+# Fetch real-time data from an API and integrate it into the index (replace with actual API URL)
+api_url = "https://example.com/market_data"
+ocean5.get_real_time_data(api_url)
+
+# Generate the global health index
+global_health_index = ocean5.generate_global_health_index(api_url)
+print(global_health_index)
