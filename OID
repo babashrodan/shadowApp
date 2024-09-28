@@ -1,0 +1,96 @@
+import pyotp
+
+# Generating TOTP for secure transfer using a secret key
+def generate_key_fob_code(secret_key: str):
+    totp = pyotp.TOTP(secret_key)
+    return totp.now()
+
+# Example usage
+secret_key = "JBSWYXDJGQXDUEBQ"  # A random base32 encoded secret key
+code = generate_key_fob_code(secret_key)
+print("Key Fob Code:", code)
+
+# Initialize the Node.js project
+npm init -y
+npm install express jsonwebtoken pyotp
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const pyotp = require('pyotp');
+
+const app = express();
+app.use(express.json());
+
+const secretKey = "JBSWYXDJGQXDUEBQ";
+
+// Function to verify TOTP codes
+function verifyCode(code) {
+    const totp = new pyotp.TOTP(secretKey);
+    return totp.verify(code);
+}
+
+// API to transfer funds
+app.post('/transfer', (req, res) => {
+    const { token, amount, fromCountry, toCountry } = req.body;
+
+    // Verify the token (key fob code)
+    if (!verifyCode(token)) {
+        return res.status(403).json({ message: "Invalid key fob code." });
+    }
+
+    // Here you would add the logic to handle the capital transfer
+    res.json({ message: `Transferred ${amount} from ${fromCountry} to ${toCountry}` });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+countries = [
+    "India", "Russia", "China", "Brazil", "South Africa", "Jordan", "Colombia", 
+    "Venezuela", "Morocco", "Algeria", "Libya", "Egypt", "Georgia", "Albania", 
+    "Kosovo", "North Macedonia", "France", "UK", "Palestine", "Syria", "Iraq", 
+    "Iran", "Italy", "Germany", "Chile", "Japan", "Indonesia", "Ireland", 
+    "Nigeria", "Armenia", "Korea", "Thailand", "Bosnia", "Malaysia", 
+    "Pakistan", "Mexico", "Greece", "America", "Lebanon"
+]
+
+# Create the token for each country
+currencies = {
+    f"CBRC: {country}": {
+        "currency_name": f"CBRC Token for {country}",
+        "currency_code": f"CBRC_{country[:3].upper()}",
+        "value_in_OID": 1  # You would use actual conversion rates here
+    } for country in countries
+}
+
+# Add the central treasury currency
+currencies["OID"] = {
+    "currency_name": "Ozhumanil Imperial Daric",
+    "currency_code": "OID",
+    "value_in_OID": 1  # OID itself is the base currency
+}
+
+import json
+
+# Print out the dictionary as JSON
+print(json.dumps(currencies, indent=4))
+
+//{
+    "CBRC: India": {
+        "currency_name": "CBRC Token for India",
+        "currency_code": "CBRC_IND",
+        "value_in_OID": 1
+    },
+    "CBRC: Russia": {
+        "currency_name": "CBRC Token for Russia",
+        "currency_code": "CBRC_RUS",
+        "value_in_OID": 1
+    },
+    "OID": {
+        "currency_name": "Ozhumanil Imperial Daric",
+        "currency_code": "OID",
+        "value_in_OID": 1
+    }
+}
