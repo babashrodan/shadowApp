@@ -88,9 +88,214 @@ print(json.dumps(currencies, indent=4))
         "currency_code": "CBRC_RUS",
         "value_in_OID": 1
     },
+
+    "CBRC: China": {
+     "currency_name": "CBRC Token for China",
+     "currency_code": "CBRC_CHI",
+     "value_in_OID": 1
+    },
+     
+    "CBRC: Brazil": {
+    "currency_name": "CBRC Token for Brazil",
+    "currency_code": "CBRC_BRA",
+    "value_in_OID": 1
+    },
+
+    "CBRC: South Africa":{
+    "currency_name": "CBRC Token for South Africa",
+    "currency_code": "CBRC_SA",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Colombia":{
+    "currency_name": "CBRC Token for Colombia",
+    "currency_code": "CBRC_COL",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Venezuela":{
+    "currency_name": "CBRC Token for Venezuela",
+    "currency_code": "CBRC_VEN",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Morocco":{
+    "currency_name": "CBRC Token for the Kingdom of Morocco",
+    "currency_code": "CBRC_MOR",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Algeria":{
+    "currency_name": "CBRC Token for Algeria",
+    "currency_code": "CBRC_ALG",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Libya":{
+    "currency_name": "CBRC Token for Libya",
+    "currency_code": "CBRC_LIB",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Egypt":{
+    "currency_name": "CBRC Token for Egypt",
+    "currency_code": "CBRC_EGY",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Georgia":{
+    "currency_name": "CBRC Token for Georgia",
+    "currency_code": "CBRC_GEO",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Albania":{
+    "currency_name": "CBRC Token for Albania",
+    "currency_code": "CBRC_ALB",
+    "value_in_OID": 1
+    },
+  
+    "CBRC: France":{
+    "currency_name": "CBRC Token for France",
+    "currency_code": "CBRC_FRA",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: United Kingdom":{
+    "currency_name": "CBRC Token for United Kingdom",
+    "currency_code": "CBRC_UK",
+    "value_in_OID" : 1
+    }, 
+
+    "CBRC: State of Palestine":{
+    "currency_name": "CBRC Token for State of Palestine",
+    "currency_code": "CBRC_PAL",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Syrian Arab Republic":{
+    "currency_name": "CBRC Token for Syrian Arab Republic",
+    "currency_code": "CBRC_SAP",
+    "value_in_OID" : 1
+    },
+    
+    "CBRC: Iraq":{
+    "currency_name": "CBRC Token for Iraq",
+    "currency_code": "CBRC_IRA",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Islamic State of Iran":{
+    "currency_name": "CBRC Token for Iran",
+    "currency_code": "CBRC_ISI",
+    "value_in_OID": 1
+    },
+ 
+    "CBRC: Republic of Italy":{
+    "currency_name": "CBRC Token for Italy",
+    "currency_code": "CBRC_ITL",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Republic of Germany":{
+    "currency_name": "CBRC Token for Germany",
+    "currency_code": "CBRC_GER",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Republic of Chile":{
+    "currency_name": "CBRC Token for Chile,
+    "currency_code": "CBRC_CHL",
+    "value_in_OID": 1
+    },
+
+    "CBRC: State of Japan":{
+    "currency_name": "CBRC Token for Japan",
+    "currency_code": "CBRC_JPN",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Republic of Indonesia":{
+    "currency_name": "CBRC Token for Indonesia",
+    "currency_code": "CBRC_IDS",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Ireland":{
+    "currency_name": "CBRC Token for Ireland",
+    "currency_code": "CBRC_IRE",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Nigeria":{
+    "currency_name": "CBRC Token for Nigeria",
+    "currency_code": "CBRC_NRA",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Armenia":{
+    "currency_name": "CBRC Token for Armenia",
+    "currency_code": "CBRC_ARM",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Korea":{
+    "currency_name": "CBRC Token for Korea",
+    "currency_code": "CBRC_KOR",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Kingdom of Thailand":{
+    "currency_name": "CBRC Token for the Kingdom of Thailand",
+    "currency_code": "CBRC_TAI",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Bosnia and Herzegovina":{
+    "currency_name": "CBRC Token of Bosnia and Herzegovnia",
+    "currency_code": "CBRC_BHZ",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Malaysia":{
+    "currency_name": "CBRC Token of Malaysia",
+    "currency_code": "CBRC_MLY",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Islamic State of Pakistan":{
+    "currency_name": "CBRC Token of Pakistan",
+    "currency_code": "CBRC_PKS",
+    "value_in_OID": 1
+    },
+
+    "CBRC: United States of Mexico":{
+    "currency_name": "CBRC Token of Mexico",
+    "currency_code": "CBRC_MXC",
+    "value_in_OID": 1
+    },
+
+    "CBRC: Hellenic Republic of Greece":{
+    "currency_name": "CBRC Tokens of Greece",
+    "currency_code": "CBRC_GRC",
+    "value_in_OID": 1
+    },
+
+    "CBRC: United States of America":{
+    "currency_name": "CBRC Token of United States",
+    "currency_code": "CBRC_USA",
+    "value_in_OID" : 1
+    },
+
+    "CBRC: Republic of Lebanon":{
+    "currency_name": "CBRC Token of Lebanon",
+    "currency_code": "CBRC_LBN",
+    "vaue_in_OID" : 1
+    },
+
     "OID": {
         "currency_name": "Ozhumanil Imperial Daric",
         "currency_code": "OID",
-        "value_in_OID": 1
+        "value_in_OID": 1:70.6011 
     }
 }
