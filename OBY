@@ -1,0 +1,221 @@
+from rate_aggregator import RateAggregator
+from dusc.supply_adjustment import DUSCSupplyAdjustment
+
+class RealTimeRateIntegration:
+    def __init__(self, web3_provider_url, liquidity_pool_manager, dusc_contracts):
+        self.rate_aggregator = RateAggregator()
+        self.supply_adjustment = DUSCSupplyAdjustment(web3_provider_url, dusc_contracts)
+        self.liquidity_pool_manager = liquidity_pool_manager
+
+    def update_rates_and_adjust_supply(self, country_code, tokenA, tokenB, account):
+        """Fetch real-time treasury rate, adjust token supply, and update liquidity."""
+        # Fetch and normalize the new treasury rate
+        new_treasury_rate = self.rate_aggregator.fetch_treasury_rate(country_code)
+        normalized_rate = self.rate_aggregator.normalize_rate(new_treasury_rate)
+
+        # Adjust the DUSC token supply based on new rates
+        self.supply_adjustment.adjust_token_supply(country_code, account)
+
+        # Dynamically adjust liquidity pools if needed
+        pool = self.liquidity_pool_manager.get_pool_info(tokenA, tokenB)
+        if pool:
+            self.liquidity_pool_manager.add_liquidity(tokenA, tokenB, 50000, 25000)
+            print(f"Liquidity updated for {tokenA} ↔ {tokenB} with new treasury rates")
+
+# Example of real-time rate integration for USA and UK
+web3_url = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+account = {
+    'address': '0xYourAccountAddress',
+    'privateKey': '0xYourPrivateKey'
+}
+dusc_contracts = {
+    "USA": "0xYourDUSCContractAddressForUSA",
+    "UK": "0xYourDUSCContractAddressForUK"
+}
+liquidity_pool_manager = LiquidityPool()
+
+rate_integration = RealTimeRateIntegration(web3_url, liquidity_pool_manager, dusc_contracts)
+rate_integration.update_rates_and_adjust_supply("USA", "DUSC_USA", "DUSC_UK", account)
+
+import Web3 from "web3";
+
+// Connect to blockchain (Infura or local node)
+const web3 = new Web3("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID");
+
+// Export web3 instance
+export default web3;
+
+import React from "react";
+
+function Navbar() {
+    return (
+        <nav className="navbar">
+            <h1>Naval Trade DEX</h1>
+            <ul>
+                <li>Home</li>
+                <li>Swap</li>
+                <li>Liquidity</li>
+            </ul>
+        </nav>
+    );
+}
+
+export default Navbar;
+
+import React, { useState } from "react";
+import web3 from "../web3/web3";
+
+function SwapForm({ dexContract }) {
+    const [tokenA, setTokenA] = useState("");
+    const [tokenB, setTokenB] = useState("");
+    const [amountA, setAmountA] = useState(0);
+
+    const performSwap = async () => {
+        const accounts = await web3.eth.getAccounts();
+        await dexContract.methods.swap(tokenA, tokenB, amountA).send({ from: accounts[0] });
+        alert(`Successfully swapped ${amountA} ${tokenA}`);
+    };
+
+    return (
+        <div>
+            <h2>Token Swap</h2>
+            <form onSubmit={(e) => { e.preventDefault(); performSwap(); }}>
+                <label>
+                    Token A:
+                    <input type="text" value={tokenA} onChange={(e) => setTokenA(e.target.value)} />
+                </label>
+                <label>
+                    Token B:
+                    <input type="text" value={tokenB} onChange={(e) => setTokenB(e.target.value)} />
+                </label>
+                <label>
+                    Amount A:
+                    <input type="number" value={amountA} onChange={(e) => setAmountA(e.target.value)} />
+                </label>
+                <button type="submit">Swap Tokens</button>
+            </form>
+        </div>
+    );
+}
+
+export default SwapForm;
+
+import React, { useState } from "react";
+import web3 from "../web3/web3";
+
+function LiquidityManager({ dexContract }) {
+    const [tokenA, setTokenA] = useState("");
+    const [tokenB, setTokenB] = useState("");
+    const [amountA, setAmountA] = useState(0);
+    const [amountB, setAmountB] = useState(0);
+
+    const addLiquidity = async () => {
+        const accounts = await web3.eth.getAccounts();
+        await dexContract.methods.addLiquidity(tokenA, tokenB, amountA, amountB).send({ from: accounts[0] });
+        alert(`Liquidity added: ${amountA} ${tokenA} and ${amountB} ${tokenB}`);
+    };
+
+    return (
+        <div>
+            <h2>Manage Liquidity</h2>
+            <form onSubmit={(e) => { e.preventDefault(); addLiquidity(); }}>
+                <label>
+                    Token A:
+                    <input type="text" value={tokenA} onChange={(e) => setTokenA(e.target.value)} />
+                </label>
+                <label>
+                    Token B:
+                    <input type="text" value={tokenB} onChange={(e) => setTokenB(e.target.value)} />
+                </label>
+                <label>
+                    Amount A:
+                    <input type="number" value={amountA} onChange={(e) => setAmountA(e.target.value)} />
+                </label>
+                <label>
+                    Amount B:
+                    <input type="number" value={amountB} onChange={(e) => setAmountB(e.target.value)} />
+                </label>
+                <button type="submit">Add Liquidity</button>
+            </form>
+        </div>
+    );
+}
+
+export default LiquidityManager;
+
+import React from "react";
+import Navbar from "./components/Navbar";
+import SwapForm from "./components/SwapForm";
+import LiquidityManager from "./components/LiquidityManager";
+import dexContract from "./web3/dexContract";  // Load the DEX contract ABI and address
+
+function App() {
+    return (
+        <div>
+            <Navbar />
+            <div className="container">
+                <SwapForm dexContract={dexContract} />
+                <LiquidityManager dexContract={dexContract} />
+            </div>
+        </div>
+    );
+}
+
+export default App;
+
+npm install react react-dom web3
+
+npm start
+
+class LiquidityModel:
+    def __init__(self, total_capital, deposit_rate, yield_rate):
+        self.total_capital = total_capital
+        self.deposit_rate = deposit_rate
+        self.yield_rate = yield_rate
+    
+    def calculate_deposit(self):
+        """Calculate the total deposit based on the deposit rate."""
+        return self.total_capital * self.deposit_rate
+    
+    def calculate_yield(self, deposit):
+        """Calculate the yield based on the deposit and yield rate."""
+        return deposit * (1 + self.yield_rate)
+    
+    def run_model(self):
+        """Run the liquidity model and calculate return."""
+        deposit_amount = self.calculate_deposit()
+        yield_return = self.calculate_yield(deposit_amount)
+        return deposit_amount, yield_return
+
+# Constants based on the problem statement
+total_capital = 585_000_000_000_000_000_000_000_000  # $585 sextillion
+deposit_rate = 0.85  # 85% deposit rate
+yield_rate = 4.25  # 425% return on investment
+
+# Initialize the liquidity model
+liquidity_model = LiquidityModel(total_capital, deposit_rate, yield_rate)
+
+# Run the model to get deposit and yield return
+deposit_amount, yield_return = liquidity_model.run_model()
+
+# Print the results
+print(f"Deposit Amount: ${deposit_amount:.2e}")
+print(f"Yield Return: ${yield_return:.2e}")
+
+def calculate_total_market_yield(securities, liquidity_model):
+    total_deposit = 0
+    total_yield = 0
+
+    for security in securities:
+        deposit, yield_return = liquidity_model.run_model()
+        total_deposit += deposit
+        total_yield += yield_return
+
+    return total_deposit, total_yield
+
+# Example for 10 securities
+securities = ['Security_1', 'Security_2', 'Security_3', 'Security_4', 'Security_5', 'Security_6', 'Security_7', 'Security_8', 'Security_9', 'Security_10']
+total_deposit, total_yield = calculate_total_market_yield(securities, liquidity_model)
+
+print(f"Total Deposit for Market: ${total_deposit:.2e}")
+print(f"Total Yield for Market: ${total_yield:.2e}")
