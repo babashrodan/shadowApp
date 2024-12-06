@@ -296,6 +296,6 @@ print(json.dumps(currencies, indent=4))
     "OID: The Imperial Republic of Ozhumanil": {
         "currency_name": "Ozhumanil Imperial Daric",
         "currency_code": "OID",
-        "global_value_in_OID": 1.706011 
+        "global_value_in_OID": 7.939800000000001
     }
 }
