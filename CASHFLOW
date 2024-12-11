@@ -1,0 +1,216 @@
+import networkx as nx
+import datetime
+import time
+import math
+import pandas as pd
+import numpy as np
+from typing import List, Dict, Tuple, Any
+
+class PrivateTradeBank:
+    def __init__(self, name: str):
+        self.name = name
+        self.trade_routes = nx.DiGraph()  # Directed graph to model trade routes
+        self.investments = []  # List to store FDI-related data
+        self.optimization_results = {}  # Store optimization results for routes
+        self.integration_data = {}  # Store external system integration data
+
+    def add_trade_route(self, source: str, destination: str, cost: float, capacity: int):
+        """
+        Add a trade route between two locations.
+        """
+        self.trade_routes.add_edge(source, destination, cost=cost, capacity=capacity)
+
+    def add_investment(self, country: str, amount: float, sector: str, date: datetime.date):
+        """
+        Record a foreign direct investment.
+        """
+        investment = {
+            "country": country,
+            "amount": amount,
+            "sector": sector,
+            "date": date
+        }
+        self.investments.append(investment)
+
+    def optimize_routes(self, optimization_criteria: str = "cost") -> Dict[str, Any]:
+        """
+        Optimize trade routes based on the given criteria (e.g., cost or capacity).
+        """
+        if optimization_criteria == "cost":
+            # Find the shortest paths based on cost
+            results = nx.shortest_path(self.trade_routes, weight='cost')
+        elif optimization_criteria == "capacity":
+            # Use a custom algorithm to maximize capacity
+            results = self._maximize_capacity_routes()
+        else:
+            raise ValueError("Unsupported optimization criteria")
+
+        self.optimization_results = results
+        return results
+
+    def _maximize_capacity_routes(self) -> Dict[str, Any]:
+        """
+        Custom method to optimize routes for maximum capacity.
+        """
+        max_capacity_routes = {}
+        for source in self.trade_routes.nodes:
+            for target in self.trade_routes.nodes:
+                if source != target:
+                    try:
+                        path = nx.shortest_path(self.trade_routes, source=source, target=target, weight=lambda u, v, d: -d['capacity'])
+                        max_capacity_routes[(source, target)] = path
+                    except nx.NetworkXNoPath:
+                        pass
+        return max_capacity_routes
+
+    def get_market_routes(self, region: str) -> List[Tuple[str, str]]:
+        """
+        Retrieve all trade routes for a specific region.
+        """
+        return [(u, v) for u, v, d in self.trade_routes.edges(data=True) if region in (u, v)]
+
+    def report_investments(self) -> List[Dict[str, Any]]:
+        """
+        Generate a report of all recorded investments.
+        """
+        return self.investments
+
+    def integrate_with_external_system(self, system_name: str, integration_details: Dict[str, Any]):
+        """
+        Integrate trade bank with an external system.
+        """
+        self.integration_data[system_name] = integration_details
+
+    def sync_with_blockchain(self, blockchain_data: Dict[str, Any]):
+        """
+        Sync trade routes and investments with a blockchain system.
+        """
+        for route in self.trade_routes.edges(data=True):
+            blockchain_data['routes'].append(route)
+        for investment in self.investments:
+            blockchain_data['investments'].append(investment)
+        return blockchain_data
+
+class NebulaLiquiditySystem:
+    def __init__(self):
+        # Define rate tiers (USD per transaction)
+        self.tiers = {
+            "low": {"rate": 0.000125, "markup": 0.15, "multiple": 1.62},
+            "medium": {"rate": 0.000225, "markup": 0.25, "multiple": 4.86},
+            "high": {"rate": 0.000365, "markup": 0.35, "multiple": 11.0376},
+        }
+        self.lockup_capital = 25e9  # $25 billion
+        self.liquidity_threshold = 0.5  # Arbitrary threshold for high vs low liquidity
+    
+    def calculate_throughput(self, tier, liquidity_level):
+        """Calculates throughput based on liquidity level and tier."""
+        rate = self.tiers[tier]["rate"]
+        markup = self.tiers[tier]["markup"]
+        multiple = self.tiers[tier]["multiple"]
+
+        # Adjust rate based on liquidity level
+        if liquidity_level >= self.liquidity_threshold:
+            # High liquidity: Compound rate
+            effective_rate = rate + (rate * markup)
+        else:
+            # Low liquidity: Standardize allocation
+            effective_rate = rate
+
+        # Calculate per-second, per-minute, per-hour, and per-day throughput
+        per_second = effective_rate * self.lockup_capital
+        per_minute = per_second * 60
+        per_hour = per_minute * 60
+        per_day = per_hour * 24
+
+        # Calculate yearly ROI
+        roi = self.lockup_capital * multiple
+        
+        return {
+            "effective_rate": effective_rate,
+            "per_second": per_second,
+            "per_minute": per_minute,
+            "per_hour": per_hour,
+            "per_day": per_day,
+            "roi": roi,
+        }
+
+    def display_throughput(self, tier, throughput):
+        """Displays the calculated throughput in a formatted manner."""
+        print(f"\n--- Liquidity Throughput for {tier.capitalize()} Tier ---")
+        print(f"Effective Rate: ${throughput['effective_rate']:.8f} USD")
+        print(f"Throughput per Second: ${throughput['per_second']:.2f} USD")
+        print(f"Throughput per Minute: ${throughput['per_minute']:.2f} USD")
+        print(f"Throughput per Hour: ${throughput['per_hour']:.2f} USD")
+        print(f"Throughput per Day: ${throughput['per_day']:.2f} USD")
+        print(f"Yearly ROI: ${throughput['roi']:.2f} USD")
+
+    def run_simulation(self, liquidity_level):
+        """Runs the simulation for all tiers based on liquidity level."""
+        for tier in self.tiers:
+            throughput = self.calculate_throughput(tier, liquidity_level)
+            self.display_throughput(tier, throughput)
+
+# Example usage
+trade_bank = PrivateTradeBank(name="Global Trade Bank")
+trade_bank.add_trade_route("New York", "London", cost=500, capacity=200)
+trade_bank.add_trade_route("London", "Tokyo", cost=800, capacity=150)
+trade_bank.add_investment("India", amount=1000000, sector="Infrastructure", date=datetime.date(2024, 12, 11))
+
+# Optimize routes based on cost
+optimized_routes = trade_bank.optimize_routes(optimization_criteria="cost")
+
+# Get trade routes in a specific region
+market_routes = trade_bank.get_market_routes(region="London")
+
+# Generate an investment report
+investment_report = trade_bank.report_investments()
+
+# Integrate with an external system
+trade_bank.integrate_with_external_system("Federacion System", {"status": "active", "version": "1.0"})
+
+# Sync with blockchain
+default_blockchain_data = {"routes": [], "investments": []}
+synced_blockchain_data = trade_bank.sync_with_blockchain(default_blockchain_data)
+
+# Simulate high liquidity
+nebula = NebulaLiquiditySystem()
+print("Simulating High Liquidity...")
+high_liquidity_level = 0.8  # Example value for high liquidity
+nebula.run_simulation(high_liquidity_level)
+
+# Pause for a moment
+time.sleep(2)
+
+# Simulate low liquidity
+print("\nSimulating Low Liquidity...")
+low_liquidity_level = 0.3  # Example value for low liquidity
+nebula.run_simulation(low_liquidity_level)
+
+# Matrix hashing rates for borrowing from treasury
+nc1 = np.matrix([[5,5,1], [5,8,7], [4,4,2]])
+nc2 = np.matrix([[8,8,8], [7,3,4], [4,2,7]])
+nc3 = np.matrix([[9,9,3], [6,9,6], [5,9,3]])
+nc4 = np.matrix([[10,10,10], [2,7,10], [6,6,6]])
+
+rate1low = nc1*0.05
+rate2low = nc2*0.05
+rate3low = nc3*0.05
+
+lowrate = [rate1low, rate2low, rate3low]
+for x in lowrate:
+    print(f'These are the lowest Matrix Hash Rates in Daric: {x}')
+
+gc1 = np.matrix([[9,24,20,], [16,12,12], [19,12,28], [8,25,29]])
+gc2 = np.matrix([[24,24,12], [23,7,2], [3,9,2], [2,3,7]])
+gc3 = np.matrix([[2,3,5], [4,10,2], [6,2,7], [4,9,6]])
+gc4 = np.matrix([[9,5,8], [10,2,7], [8,2,7], [8,10,9]])
+
+medium1 = gc1*0.05
+medium2 = gc2*0.05
+medium3 = gc3*0.05
+
+mediumrate = [medium1, medium2, medium3]
+for x in mediumrate:
+    print(f'These are the medium Matrix Hash Rates in Daric: {x}')
+
+bc1 = np.matrix([[8,9,2], [5,5,6], [7
