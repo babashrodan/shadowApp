@@ -1,0 +1,73 @@
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+class PortfolioOptimization:
+    def __init__(self, returns, risk_free_rate=0.02):
+        self.returns = returns
+        self.mean_returns = returns.mean()
+        self.cov_matrix = returns.cov()
+        self.risk_free_rate = risk_free_rate
+
+    def portfolio_performance(self, weights):
+        """Calculate portfolio performance (returns and volatility)."""
+        returns = np.dot(weights, self.mean_returns)
+        volatility = np.sqrt(np.dot(weights.T, np.dot(self.cov_matrix, weights)))
+        return returns, volatility
+
+    def sharpe_ratio(self, weights):
+        """Calculate the negative Sharpe ratio for optimization."""
+        returns, volatility = self.portfolio_performance(weights)
+        return -(returns - self.risk_free_rate) / volatility
+
+    def optimize_portfolio(self):
+        """Optimize the portfolio using the Sharpe ratio."""
+        num_assets = len(self.mean_returns)
+        args = (self.mean_returns, self.cov_matrix, self.risk_free_rate)
+        constraints = ({'type': 'eq', 'fun': lambda weights: np.sum(weights) - 1})
+        bounds = tuple((0, 1) for _ in range(num_assets))
+        initial_weights = num_assets * [1. / num_assets]
+
+        result = minimize(self.sharpe_ratio, initial_weights, bounds=bounds, constraints=constraints)
+        return result.x
+
+    def plot_efficient_frontier(self, num_portfolios=10000):
+        """Simulate portfolios to plot the efficient frontier."""
+        results = np.zeros((3, num_portfolios))
+        weights_record = []
+
+        for i in range(num_portfolios):
+            weights = np.random.random(len(self.mean_returns))
+            weights /= np.sum(weights)
+            weights_record.append(weights)
+
+            portfolio_return, portfolio_volatility = self.portfolio_performance(weights)
+            results[0, i] = portfolio_return
+            results[1, i] = portfolio_volatility
+            results[2, i] = (portfolio_return - self.risk_free_rate) / portfolio_volatility
+
+        max_sharpe_idx = np.argmax(results[2])
+        sdp, rp = results[1, max_sharpe_idx], results[0, max_sharpe_idx]
+
+        plt.scatter(results[1, :], results[0, :], c=results[2, :], cmap='viridis')
+        plt.colorbar(label='Sharpe Ratio')
+        plt.scatter(sdp, rp, marker='*', color='r', s=200, label='Maximum Sharpe Ratio')
+        plt.title('Efficient Frontier')
+        plt.xlabel('Volatility')
+        plt.ylabel('Return')
+        plt.legend()
+        plt.show()
+
+# Example Usage:
+# Simulated returns data for 5 assets
+np.random.seed(42)
+returns = pd.DataFrame(np.random.randn(1000, 5) / 100, columns=['Asset_1', 'Asset_2', 'Asset_3', 'Asset_4', 'Asset_5'])
+
+# Initialize and optimize the portfolio
+optimizer = PortfolioOptimization(returns)
+optimal_weights = optimizer.optimize_portfolio()
+
+# Display the results
+print("Optimal Weights:", optimal_weights)
+optimizer.plot_efficient_frontier()
