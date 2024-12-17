@@ -6,9 +6,9 @@ Created on Fri Dec 15 14:59:09 2023
 class DRTCO:
     def __init__(self):
         # ERC-20 Token
-        self.name = "Ozhumanil Imperial Daric"
+        self.name = "Ozhumanil Infrastructure Dollar"
         self.symbol = "OID"
-        self.totalSupply = 400803252946060000000000000000000000.00
+        self.totalSupply = $15,323,154,932,255,100,000,000,000,000,000,000,000,000.00
         self.decimals = 18
 
         # Mapping for balance and allowance
