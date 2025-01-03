@@ -1,0 +1,33 @@
+# Define input data
+central_bank_rates = [3.5, 2.0, 4.25, 5.0, 1.75]  # Example central bank rates in percent
+treasury_bond_rates = [3.0, 2.8, 3.2, 2.9, 3.1]  # Example treasury bond rates in percent
+rolling_vix = 18.5  # Example rolling VIX value
+
+# Constants
+total_countries = 197
+
+def calculate_average_aggregate_proof(central_bank_rates, treasury_bond_rates, rolling_vix):
+    """
+    Calculate the Average Aggregate Proof based on the provided inputs.
+    """
+    # Calculate Peg 1
+    total_central_banks = len(central_bank_rates)
+    peg1 = sum(central_bank_rates) / total_central_banks
+
+    # Calculate Peg 2
+    peg2 = sum(treasury_bond_rates) / total_countries
+
+    # Calculate Average Aggregate Proof
+    average_aggregate_proof = (peg1 + peg2) / rolling_vix
+
+    return average_aggregate_proof, peg1, peg2
+
+# Perform the calculation
+average_proof, peg1, peg2 = calculate_average_aggregate_proof(
+    central_bank_rates, treasury_bond_rates, rolling_vix
+)
+
+# Display the results
+print(f"Peg 1: {peg1:.4f}")
+print(f"Peg 2: {peg2:.4f}")
+print(f"Average Aggregate Proof: {average_proof:.4f}")
