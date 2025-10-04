@@ -67,7 +67,7 @@ currencies = {
 
 # Add the central treasury currency
 currencies["OID"] = {
-    "currency_name": "Ozhumanil Imperial Daric",
+    "currency_name": "Ops Investment Debt (OID)",
     "currency_code": "OID",
     "value_in_OID": 1  # OID itself is the base currency
 }
@@ -294,7 +294,7 @@ print(json.dumps(currencies, indent=4))
     },
 
     "OID: The Imperial Republic of Ozhumanil": {
-        "currency_name": "Ozhumanil Imperial Daric",
+        "currency_name": "Ops Investment Debt (OID)",
         "currency_code": "OID",
         "global_value_in_OID": 7.939800000000001
     }
