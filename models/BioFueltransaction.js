@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ArmsTransactionSchema = new mongoose.Schema({
+const BioFuelschema = new mongoose.Schema({
   type: String,
   quantity: Number,
   date: { type: Date, default: Date.now },
