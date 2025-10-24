@@ -3,7 +3,7 @@ from scipy.integrate import quad
 
 class DRTCO:
     def __init__(self):
-        self.name = "Ozhumanill Trade Capital"
+        self.name = "Ozhumanill Trade Deposit"
         self.symbol = "OTD"
         self.total_supply = 15323154932255100000000000000000000000000.00
         self.decimals = 18
