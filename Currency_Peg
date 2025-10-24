@@ -1,7 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jan  2 18:55:12 2025
+
+@author: shadowbanker
+"""
+
 # Define input data
-central_bank_rates = [3.5, 2.0, 4.25, 5.0, 1.75]  # Example central bank rates in percent
-treasury_bond_rates = [3.0, 2.8, 3.2, 2.9, 3.1]  # Example treasury bond rates in percent
-rolling_vix = 18.5  # Example rolling VIX value
+central_bank_rates = [3.1, 6.5, 10.00, 21.00, 7.75]  # China, India, Mexico, Russia, South Africa
+treasury_bond_rates = [1.62, 6.77, 10.674 , 15.708, 9.250]  # treasury bond rates in percent
+rolling_vix = 19.56  #Actaul rolling VIX
 
 # Constants
 total_countries = 197
@@ -31,3 +38,274 @@ average_proof, peg1, peg2 = calculate_average_aggregate_proof(
 print(f"Peg 1: {peg1:.4f}")
 print(f"Peg 2: {peg2:.4f}")
 print(f"Average Aggregate Proof: {average_proof:.4f}")
+
+# Interest Rates and Costs with MGBM
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Initialize CoinGecko API client
+
+# Constants for effective rates and throughput calculations
+LOW_TIER_RATE_HIGH_LIQUIDITY = 0.00014375
+MEDIUM_TIER_RATE_HIGH_LIQUIDITY = 0.00028125
+HIGH_TIER_RATE_HIGH_LIQUIDITY = 0.00049275
+
+LOW_TIER_RATE_LOW_LIQUIDITY = 0.00012500
+MEDIUM_TIER_RATE_LOW_LIQUIDITY = 0.00022500
+HIGH_TIER_RATE_LOW_LIQUIDITY = 0.00036500
+
+SECONDS_PER_MINUTE = 60
+MINUTES_PER_HOUR = 60
+HOURS_PER_DAY = 24
+DAYS_PER_YEAR = 365
+
+# Function to calculate throughput for given rates and tier
+def calculate_throughput(effective_rate, is_high_liquidity):
+    multiplier = 1.15 if is_high_liquidity else 1.0  # Example modifier for high liquidity
+    throughput_per_second = effective_rate * 25000000000 * multiplier  # Hypothetical market multiplier
+    throughput_per_minute = throughput_per_second * SECONDS_PER_MINUTE
+    throughput_per_hour = throughput_per_minute * MINUTES_PER_HOUR
+    throughput_per_day = throughput_per_hour * HOURS_PER_DAY
+    yearly_roi = throughput_per_day * DAYS_PER_YEAR
+    
+    return {
+        "throughput_per_second": throughput_per_second,
+        "throughput_per_minute": throughput_per_minute,
+        "throughput_per_hour": throughput_per_hour,
+        "throughput_per_day": throughput_per_day,
+        "yearly_roi": yearly_roi
+    }
+
+# Function to fetch live prices for the crypto assets
+def fetch_crypto_prices(crypto_list):
+    prices = {}
+    for crypto in crypto_list:
+        try:
+            data = cg.get_price(ids=crypto.lower(), vs_currencies='usd')
+            if crypto.lower() in data:
+                prices[crypto] = data[crypto.lower()]['usd']
+            else:
+                print(f"No price data found for {crypto}")
+        except Exception as e:
+            print(f"Error fetching price for {crypto}: {e}")
+    return prices
+
+# Function to fetch historical price data from CoinGecko
+def fetch_historical_prices(crypto_list, days=30):
+    historical_prices = {}
+    for crypto in crypto_list:
+        try:
+            data = cg.get_coin_market_chart_by_id(id=crypto.lower(), vs_currency='usd', days=days)
+            prices = data['prices']
+            historical_prices[crypto] = prices
+        except Exception as e:
+            print(f"Error fetching data for {crypto}: {e}")
+    return historical_prices
+
+# Function to calculate crypto return on investment
+def calculate_crypto_return(deployment, price, alpha=0.65, volatility=0.095):
+    if 0.055 <= volatility < 0.095:
+        return deployment * price * alpha * (1 - volatility)
+    else:
+        return 0  # Return 0 if the volatility is not within the specified range
+
+# Function to calculate general arbitrage return
+def calculate_return(deployment, alpha, risk_volatility):
+    # Placeholder for actual calculation
+    return deployment * alpha * (1 - risk_volatility)
+
+# Function to calculate FX yield
+def calculate_fx_yield(fx_rate, interest_rate, liquidity, time):
+    # Placeholder for actual calculation
+    return fx_rate * interest_rate * liquidity * time
+
+# Function to calculate derivatives yield
+def calculate_derivatives_yield(deployment, derivative_price, market_volatility, time):
+    # Placeholder for actual calculation
+    return deployment * derivative_price * market_volatility * time
+
+# Function to generate randomized rates
+def generate_randomized_rates(base_rates, fluctuation_percentage):
+    randomized_rates = {}
+    for key, base_rate in base_rates.items():
+        fluctuation = np.random.uniform(-fluctuation_percentage, fluctuation_percentage)
+        randomized_rate = base_rate * (1 + fluctuation)
+        randomized_rates[key] = randomized_rate
+    return randomized_rates
+
+# Visualize rate fluctuations
+def visualize_rate_fluctuations(base_rates, randomized_rates):
+    tiers = list(base_rates.keys())
+    base_values = list(base_rates.values())
+    randomized_values = list(randomized_rates.values())
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(tiers, base_values, label="Base Rates", marker='o')
+    plt.plot(tiers, randomized_values, label="Randomized Rates", marker='o')
+    plt.title("Rate Fluctuations by Tier")
+    plt.xlabel("Tiers")
+    plt.ylabel("Rates (USD)")
+    plt.legend()
+    plt.grid()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+# Function to calculate interest rates derivatives
+def calculate_interest_rates(matrix):
+    return np.gradient(matrix)  # Derivative (gradient) of the given matrix
+
+# Define the MGBM class
+class MGBM:
+    def __init__(self, initial_values, mu, sigma, cov_matrix, dt):
+        self.initial_values = np.array(initial_values)
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
+        self.cov_matrix = np.array(cov_matrix)
+        self.dt = dt
+        self.n_assets = len(initial_values)
+        self.cholesky_matrix = np.linalg.cholesky(cov_matrix)
+
+    def simulate(self, n_steps):
+        paths = np.zeros((n_steps, self.n_assets))
+        paths[0] = self.initial_values
+
+        for t in range(1, n_steps):
+            z = np.random.normal(size=self.n_assets)
+            correlated_randomness = self.cholesky_matrix @ z
+            paths[t] = paths[t-1] * np.exp((self.mu - 0.5 * self.sigma**2) * self.dt + self.sigma * np.sqrt(self.dt) * correlated_randomness)
+
+        return paths
+
+# Define necessary variables
+DEPLOYMENT = 15_000_000_000  # Example value
+ALPHA_RANGES = [(0.1, 0.05), (0.2, 0.1)]  # Example values
+FX_RATES = {
+    'USD/EUR': 1.1, 
+    'USD/JPY': 110,
+    "USD/CNY": 7.1,
+    "USD/INR": 84.96,
+    "USD/KRW": 1444.61
+}  # Example values
+CURRENCY_TO_COUNTRY = {
+    "EUR": "Europe",
+    "JPY": "Japan",
+    "CNY": "China",
+    "INR": "India",
+    "KRW": "South Korea"
+}  # Example values
+INTEREST_RATES = {
+    "Europe": 0.5,
+    "Japan": 0.25,
+    "China": 3.10,
+    "India": 6.50,
+    "South Korea": 3.25
+}  # Example values
+integral = 1.5  # Derived market analysis coefficient
+derivative = 0.9  # Volatility adjustment factor
+market_price = 100  # Arbitrary market price for simplification
+asset_value = 5_000_000_000  # $5 Billion asset class valuation
+time = 5  # 5 years
+liquidity = 15_000_000_000  # $15 Billion liquidity deployment
+derivative_price = 500  # Price of the derivative instrument
+market_volatility = 0.25  # 25% market volatility
+
+# Read crypto assets from text file
+with open(r"C:\Users\gideo\OneDrive\Desktop\GTA\Core Assets To Leverage and Use.txt", 'r') as file:
+    crypto_assets = [line.strip() for line in file]
+
+# Fetch live prices for the crypto assets
+crypto_prices = fetch_crypto_prices(crypto_assets)
+
+print("\nCrypto Arbitrage Returns:")
+for asset in crypto_assets:
+    if asset in crypto_prices:
+        price = crypto_prices[asset]
+        roi = calculate_crypto_return(DEPLOYMENT, price)
+        print(f"Asset: {asset}, Price: ${price:,.2f}, Return on Investment: ${roi:,.2f}")
+    else:
+        print(f"Asset: {asset} has no matching price data.")
+
+# General Arbitrage Returns
+print("\nGeneral Arbitrage Returns:")
+for alpha, risk_volatility in ALPHA_RANGES:
+    roi = calculate_return(DEPLOYMENT, alpha, risk_volatility)
+    print(f"Alpha: {alpha*100:.1f}%, Risk Volatility: {risk_volatility*100:.1f}%, Return on Investment: ${roi:,.2f}")
+
+# FX Arbitrage Returns
+print("\nFX Arbitrage Returns:")
+for country_pair, fx_rate in FX_RATES.items():
+    currency = country_pair.split('/')[1]
+    country = CURRENCY_TO_COUNTRY.get(currency, "Unknown")
+    if country in INTEREST_RATES:
+        interest_rate = INTEREST_RATES[country]
+        fx_yield = calculate_fx_yield(fx_rate, interest_rate, liquidity, time)
+        print(f"Country Pair: {country_pair}, Yield: ${fx_yield:,.2f}")
+    else:
+        print(f"Country Pair: {country_pair} has no matching interest rate data.")
+
+# Derivatives Arbitrage Returns
+print("\nDerivatives Arbitrage Returns:")
+derivatives_yield = calculate_derivatives_yield(DEPLOYMENT, derivative_price, market_volatility, time)
+print(f"Derivatives Yield: ${derivatives_yield:,.2f}")
+
+# Generate and visualize randomized rates
+base_rates = {
+    "Tier 1": 100,
+    "Tier 2": 200,
+    "Tier 3": 300
+}  # Example base rates
+fluctuation_percentage = 0.1  # Example fluctuation percentage
+randomized_rates = generate_randomized_rates(base_rates, fluctuation_percentage)
+visualize_rate_fluctuations(base_rates, randomized_rates)
+
+# Example interest rate matrix
+matrix = np.array([[0.25, 0.25, 0.05],
+                   [0.25, 0.4, 0.35],
+                   [0.2, 0.2, 0.1]])
+
+derivatives = calculate_interest_rates(matrix)
+print("Interest Rate Derivatives Matrix:\n", derivatives)
+
+# Treasury yields and central bank rates data for 197 countries (example data)
+treasury_yields = np.random.uniform(0.5, 5.0, 197)  # Random yields between 0.5% and 5.0%
+central_bank_rates = np.random.uniform(0.1, 6.0, 197)  # Random rates between 0.1% and 6.0%
+
+# Calculate aggregate values
+aggregate_treasury_yields = np.sum(treasury_yields)
+aggregate_interest_rates = np.sum(central_bank_rates)
+nominal_average = aggregate_interest_rates / len(central_bank_rates)
+average_treasury_rate = aggregate_treasury_yields / len(treasury_yields)
+final_result = (aggregate_treasury_yields * nominal_average) / average_treasury_rate
+
+# Print results in a table format
+results_df = pd.DataFrame({
+    "Treasury Yields": treasury_yields,
+    "Central Bank Rates": central_bank_rates
+})
+
+print("\n--- Treasury Yields and Central Bank Rates Analysis ---")
+print(results_df.head())  # Display the first few rows of the table
+print(f"\nAggregate Treasury Yields: {aggregate_treasury_yields:.2f}%")
+print(f"Aggregate Interest Rates: {aggregate_interest_rates:.2f}%")
+print(f"Nominal Average: {nominal_average:.2f}%")
+print(f"Average of Treasury Rates: {average_treasury_rate:.2f}%")
+print(f"Final Result: {final_result:.2f}")
+
+# Simulate and analyze liquidity for each time interval
+time_intervals = {"1s": 1/86400, "1m": 1/1440, "1h": 1/24, "1d": 1}  # Time intervals in fraction of a day
+initial_values = [100] * 9  # Initial prices for 9 assets
+mu = [0.0001] * 9  # Drift for each asset (adjustable)
+sigma = [0.055, 0.055, 0.096, 0.096, 0.075, 0.075, 0.06, 0.06, 0.09]  # Volatility for each asset
+cov_matrix = np.identity(9) * 0.1  # Covariance matrix (adjust for correlation)
+
+for interval_name, dt in time_intervals.items():
+    print(f"Simulating for interval: {interval_name}")
+    mgbm = MGBM(initial_values, mu, sigma, cov_matrix, dt)
+    n_steps = int(1 / dt)  # Simulate for one day in the given interval
+    paths = mgbm.simulate(n_steps)
+    print(f"Simulated paths for {interval_name}:")
+    print(paths)
+    print("=" * 50)
