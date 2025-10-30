@@ -1,7 +1,7 @@
 from web3 import Web3
 import os
 
-class SamuelGlobalManagement:
+class SGMX:
     def __init__(self, infura_url, usdc_contract_address):
         self.web3 = Web3(Web3.HTTPProvider(infura_url))
         self.accounts = {
