@@ -76,10 +76,10 @@ class ConversionSystem:
         self.exchange_rates[currency_code] = rate
         print(f"Set exchange rate for {currency_code}: {rate}.")
 
-    def convert_to_fiat(self, oid_amount, currency_code):
+    def convert_to_fiat(self, otd_amount, currency_code):
         if currency_code in self.exchange_rates:
-            fiat_amount = oid_amount * self.exchange_rates[currency_code]
-            print(f"Converted {oid_amount} OID to {fiat_amount} {currency_code}.")
+            fiat_amount = otd_amount * self.exchange_rates[currency_code]
+            print(f"Converted {otd_amount} OTD to {fiat_amount} {currency_code}.")
             return fiat_amount
         else:
             print("Exchange rate not found for currency.")
