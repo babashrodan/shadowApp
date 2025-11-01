@@ -1,0 +1,323 @@
+# Compliant Payment Rail - Dev Skeleton
+
+This repository contains a development skeleton for a lawful, auditable payment rail with a compliance-first approach.
+
+**Important:** This is a **starter skeleton** only. Replace all mock implementations with certified providers and consult compliance/legal/security before production.
+
+## Quickstart
+1. Create virtualenv
+2. Install requirements: `pip install -r requirements.txt`
+3. Create `.env` from `.env.example` and adjust values
+4. Run: `uvicorn app.main:app --reload`
+
+API:
+- `GET /health/` - health check
+- `POST /v1/payments/initiate` - initiate a payment (see schema)
+
+
+
+payment_rail/
+├─ README.md
+├─ requirements.txt
+├─ .env.example
+├─ config/
+│  └─ config.yaml
+├─ app/
+│  ├─ main.py
+│  ├─ core/
+│  │  └─ settings.py
+│  ├─ api/
+│  │  └─ v1/
+│  │     ├─ health.py
+│  │     └─ payments.py
+│  ├─ models/
+│  │  └─ schemas.py
+│  ├─ services/
+│  │  ├─ ledger.py
+│  │  ├─ settlement.py
+│  │  └─ compliance/
+│  │     ├─ kyc.py
+│  │     └─ aml.py
+│  ├─ connectors/
+│  │  └─ bank_connector.py
+│  ├─ utils/
+│  │  └─ audit_logger.py
+│  ├─ tasks/
+│  │  └─ reconciler.py
+│  └─ tests/
+│     └─ test_payments.py
+└─ infra/
+   ├─ docker/
+   └─ k8s/
+
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+sqlalchemy
+alembic
+python-jose[cryptography]
+psycopg2-binary
+celery
+redis
+pytest
+
+APP_NAME=Compliant Payment Rail
+DATABASE_URL=sqlite:///./dev.db
+KYC_PROVIDER_URL=http://localhost:8081
+AML_PROVIDER_URL=http://localhost:8082
+EXCHANGE_API_BASE=http://localhost:8083
+BANK_API_BASE=http://localhost:8084
+SECRET_KEY=replace-with-secure-secret
+OAUTH_ISSUER=http://localhost:8000/
+
+from pydantic import BaseSettings, AnyUrl
+
+class Settings(BaseSettings):
+    APP_NAME: str = "Compliant Payment Rail"
+    DATABASE_URL: str
+    KYC_PROVIDER_URL: AnyUrl
+    AML_PROVIDER_URL: AnyUrl
+    EXCHANGE_API_BASE: AnyUrl
+    BANK_API_BASE: AnyUrl
+    SECRET_KEY: str
+    OAUTH_ISSUER: str
+
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+
+import uvicorn
+from fastapi import FastAPI
+from app.api.v1 import payments, health
+
+app = FastAPI(title="Compliant Payment Rail")
+
+app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(payments.router, prefix="/v1/payments", tags=["payments"])
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+from fastapi import APIRouter
+
+router = APIRouter()
+
+@router.get("/")
+async def status():
+    return {"status": "ok", "service": "compliant payment rail"}
+
+from pydantic import BaseModel, Field
+from decimal import Decimal
+from typing import Optional
+
+class PaymentInitiate(BaseModel):
+    from_account: str
+    to_account: str
+    amount: Decimal = Field(..., gt=0)
+    currency: str
+    purpose: Optional[str] = None
+    external_reference: Optional[str] = None
+
+class PaymentResponse(BaseModel):
+    payment_id: str
+    status: str
+    message: Optional[str] = None
+
+from fastapi import APIRouter, HTTPException
+from app.models.schemas import PaymentInitiate, PaymentResponse
+from app.services.compliance.kyc import KYCService
+from app.services.compliance.aml import AMLService
+from app.services.ledger import LedgerService
+from app.services.settlement import SettlementService
+from uuid import uuid4
+
+router = APIRouter()
+
+# dependency injection (simplified)
+kyc_service = KYCService()
+aml_service = AMLService()
+ledger = LedgerService()
+settlement = SettlementService()
+
+@router.post("/initiate", response_model=PaymentResponse)
+async def initiate_payment(payload: PaymentInitiate):
+    # 1) KYC check for both parties
+    if not await kyc_service.is_verified(payload.from_account):
+        raise HTTPException(status_code=400, detail="Origin party not KYCed")
+
+    if not await kyc_service.is_verified(payload.to_account):
+        raise HTTPException(status_code=400, detail="Destination party not KYCed")
+
+    # 2) AML screening
+    if await aml_service.is_sanctions_hit(payload.from_account) or await aml_service.is_sanctions_hit(payload.to_account):
+        raise HTTPException(status_code=403, detail="Sanctions screening hit; transaction blocked")
+
+    if await aml_service.is_suspicious(payload):
+        # flag and escalate (SAR) - simplified
+        return PaymentResponse(payment_id="", status="flagged", message="Transaction flagged for review")
+
+    # 3) Create ledger entry: PENDING
+    payment_id = str(uuid4())
+    ledger.create_payment(payment_id, payload.dict())
+
+    # 4) Reserve/lock funds on wallet (not implemented here)
+    # TODO: call wallet service to lock funds
+
+    # 5) Send to settlement engine (batching/netting)
+    settlement.enqueue(payment_id)
+
+    return PaymentResponse(payment_id=payment_id, status="accepted")
+
+# Simplified AML wrapper
+class AMLService:
+    def __init__(self):
+        pass
+
+    async def is_sanctions_hit(self, party_id: str) -> bool:
+        # Integrate with sanctions lists (OFAC, UN, EU, etc.) and third-party providers
+        # DO NOT bypass these checks
+        return False
+
+    async def is_suspicious(self, payment_payload) -> bool:
+        # Apply risk rules, velocity checks, thresholds, unusual corridors, etc.
+        # Return True to flag for human review
+        return False
+
+# Ledger abstraction - simple SQL-backed ledger for MVP
+import datetime
+import json
+from typing import Dict
+from sqlalchemy import create_engine, Table, Column, String, MetaData, Text, DateTime
+from app.core.settings import settings
+
+metadata = MetaData()
+payments_table = Table(
+    "payments", metadata,
+    Column("payment_id", String, primary_key=True),
+    Column("payload", Text),
+    Column("status", String),
+    Column("created_at", DateTime),
+)
+
+class LedgerService:
+    def __init__(self):
+        # Note: settings.DATABASE_URL should be set in .env
+        self.engine = create_engine(settings.DATABASE_URL, echo=False)
+        metadata.create_all(self.engine)
+
+    def create_payment(self, payment_id: str, payload: Dict):
+        with self.engine.begin() as conn:
+            conn.execute(payments_table.insert().values(
+                payment_id=payment_id,
+                payload=json.dumps(payload, default=str),
+                status="PENDING",
+                created_at=datetime.datetime.utcnow()
+            ))
+
+    def update_status(self, payment_id: str, status: str):
+        with self.engine.begin() as conn:
+            conn.execute(payments_table.update().where(payments_table.c.payment_id==payment_id).values(status=status))
+
+    def fetch(self, payment_id: str):
+        with self.engine.begin() as conn:
+            res = conn.execute(payments_table.select().where(payments_table.c.payment_id==payment_id))
+            return res.fetchone()
+
+# Simple queue-based settlement enqueuer (for demo)
+import asyncio
+from typing import List
+from app.services.ledger import LedgerService
+from app.utils.audit_logger import audit
+
+class SettlementService:
+    def __init__(self):
+        self.queue: List[str] = []
+        self.ledger = LedgerService()
+        # In prod: replace with durable queue (RabbitMQ/Kafka) + worker cluster
+
+    def enqueue(self, payment_id: str):
+        self.queue.append(payment_id)
+        audit(f"Enqueued {payment_id} for settlement")
+
+        # For demo, trigger background processing
+        try:
+            asyncio.create_task(self._process(payment_id))
+        except RuntimeError:
+            # If not in an event loop (e.g., tests), process synchronously
+            import threading
+            threading.Thread(target=asyncio.run, args=(self._process(payment_id),), daemon=True).start()
+
+    async def _process(self, payment_id: str):
+        audit(f"Processing settlement for {payment_id}")
+        # TODO: netting, batching, create settlement instructions to bank/exchange connectors
+        # Simulate a settlement delay
+        await asyncio.sleep(1)
+        # Example: send instruction to bank connector
+        # bank_connector.send_settlement(...)
+        self.ledger.update_status(payment_id, "SETTLED")
+        audit(f"Payment {payment_id} settled")
+
+# Abstract connector interface - implement per bank with their certified APIs.
+class BankConnector:
+    def __init__(self, config):
+        self.config = config
+
+    async def send_payment_instruction(self, instruction: dict) -> dict:
+        # Use bank's certified API (REST, host-to-host, SWIFT FIN via service providers, or ISO20022 channels)
+        # Must include signed messages, mutual TLS, and audit trail.
+        raise NotImplementedError("Implement bank-specific adapter")
+
+import logging
+from datetime import datetime
+
+logger = logging.getLogger("audit")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+logger.addHandler(handler)
+
+def audit(message: str, meta: dict = None):
+    ts = datetime.utcnow().isoformat() + "Z"
+    if meta:
+        logger.info(f"[AUDIT] {ts} - {message} - {meta}")
+    else:
+        logger.info(f"[AUDIT] {ts} - {message}")
+
+# Periodic reconciler to reconcile ledger with bank/exchange reports
+import asyncio
+from app.services.ledger import LedgerService
+from app.utils.audit_logger import audit
+
+async def reconcile_loop(interval_seconds: int = 60):
+    ledger = LedgerService()
+    while True:
+        audit("Starting reconciliation pass")
+        # TODO: fetch bank/exchange statements and reconcile
+        # For demo, we simply log
+        await asyncio.sleep(interval_seconds)
+
+import asyncio
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+def test_health():
+    r = client.get("/health/")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+
+def test_initiate_payment_minimal():
+    payload = {
+        "from_account": "alice-001",
+        "to_account": "bob-001",
+        "amount": "10.00",
+        "currency": "OTD"
+    }
+    r = client.post("/v1/payments/initiate", json=payload)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "accepted"
+    assert data["payment_id"]
+
