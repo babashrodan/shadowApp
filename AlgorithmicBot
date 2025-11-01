@@ -1,0 +1,390 @@
+"""
+stmd_hybrid_infra.py
+
+Hybrid Autonomous Trading Bot Infrastructure
+- Paper-mode default.
+- Implements STMD signal, Monte Carlo scenario engine,
+  volatility-band enforcement (5.5%-9.5%), CVaR optimizer (optional),
+  weight -> notional mapping, contract mapping placeholders,
+  and a PaperBroker execution adapter.
+
+Author: Generated blueprint for Obsidian Capital
+"""
+
+import os
+import time
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, Any
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
+from scipy.linalg import cholesky
+from sklearn.covariance import LedoitWolf
+
+# Optional optimizer dependency
+try:
+    import cvxpy as cp
+    CVXPY_AVAILABLE = True
+except Exception:
+    CVXPY_AVAILABLE = False
+
+# ========== CONFIGURATION ==========
+CONFIG: Dict[str, Any] = {
+    "mode": "paper",                    # "paper" or "live"
+    "capital": 5_000_000.0,             # starting capital USD
+    "target_vol_min": 0.055,            # 5.5% annualized
+    "target_vol_max": 0.095,            # 9.5% annualized
+    "target_vol_mid": 0.075,            # preferred target
+    "horizon_days": 5,                  # optimization horizon
+    "n_mc": 5000,                       # Monte Carlo scenarios
+    "alpha_cvar": 0.95,                 # CVaR level
+    "lambda_cvar": 0.8,                 # relative penalty for CVaR
+    "max_gross_leverage": 3.0,
+    "max_notional_pct_per_instrument": 0.6,
+    "data_history_years": 3,
+    "rebalancing_hours": 24,
+    "execution": {
+        "slice_chunks": 3
+    },
+    # instrument map: logical key -> market symbol & contract specs
+    "instruments": {
+        # Example seeds — replace with production instrument specs
+        "GC": {"ticker": "GC=F", "type": "futures", "contract_size": 100.0, "margin_per_contract": 5000},
+        "CL": {"ticker": "CL=F", "type": "futures", "contract_size": 1000.0, "margin_per_contract": 6000},
+        "ZS": {"ticker": "ZS=F", "type": "futures", "contract_size": 5_000.0, "margin_per_contract": 3000},
+        "HG": {"ticker": "HG=F", "type": "futures", "contract_size": 25_000.0, "margin_per_contract": 4000},
+        "GLD": {"ticker": "GLD", "type": "etf", "contract_size": 1.0, "margin_per_contract": 0},
+        "BTC": {"ticker": "BTC-USD", "type": "crypto", "contract_size": 1.0, "margin_per_contract": 0}
+    },
+    "logging_dir": "./stmd_logs"
+}
+
+# ========== SETUP LOGGING ==========
+os.makedirs(CONFIG["logging_dir"], exist_ok=True)
+logging.basicConfig(
+    filename=os.path.join(CONFIG["logging_dir"], "stmd_infra.log"),
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger("STMD_INFRA")
+logger.addHandler(logging.StreamHandler())
+
+# ========== UTILITIES ==========
+def now_iso() -> str:
+    return datetime.utcnow().isoformat()
+
+# ========== BROKER ADAPTER (Paper) ==========
+class PaperBroker:
+    """Simple paper broker for testing and simulation."""
+    def __init__(self, capital: float):
+        self.initial_capital = capital
+        self.cash = capital
+        self.positions = {}   # symbol -> signed contracts
+        self.trade_log = []   # list of executed trades
+        self.realized_pnl = 0.0
+
+    def place_order(self, symbol: str, side: str, qty: float, price: float) -> Dict[str, Any]:
+        """Place an immediate-fill paper order (market pricing assumed)."""
+        ts = now_iso()
+        trade = {"ts": ts, "symbol": symbol, "side": side, "qty": qty, "price": price}
+        self.trade_log.append(trade)
+        prev_qty = self.positions.get(symbol, 0.0)
+        signed_qty = qty if side.upper() == "BUY" else -qty
+        self.positions[symbol] = prev_qty + signed_qty
+        # Cash accounting (approx): notional moves
+        notional = qty * price
+        if side.upper() == "BUY":
+            self.cash -= notional
+        else:
+            self.cash += notional
+        logger.info(f"[PAPER EXEC] {side} {qty:.4f} {symbol} @ {price:.2f} (cash={self.cash:.2f})")
+        return trade
+
+    def get_positions(self):
+        return dict(self.positions)
+
+    def snapshot(self):
+        return {
+            "cash": self.cash,
+            "positions": self.positions.copy(),
+            "realized_pnl": self.realized_pnl,
+            "trade_count": len(self.trade_log)
+        }
+
+# ========== DATA ENGINE ==========
+class DataEngine:
+    """Fetch historical price series. Replace yfinance calls with your market data provider in production."""
+    def __init__(self, instruments: Dict[str, Any], history_years: int = 3):
+        self.instrument_map = instruments
+        self.history_years = history_years
+
+    def fetch_historical(self) -> pd.DataFrame:
+        tickers = [cfg["ticker"] for cfg in self.instrument_map.values()]
+        end = datetime.utcnow()
+        start = end - timedelta(days=365*self.history_years)
+        df = yf.download(tickers, start=start, end=end, progress=False)['Adj Close']
+        # rename columns to logical keys (order maintained)
+        keys = list(self.instrument_map.keys())
+        if df.shape[1] >= len(keys):
+            df = df.iloc[:, :len(keys)]
+            df.columns = keys
+        else:
+            # try best-effort renaming if yfinance returns shorter mapping
+            df.columns = keys[:df.shape[1]]
+        df = df.dropna(how="all")
+        logger.info(f"Fetched history rows={len(df)} cols={df.shape[1]}")
+        return df
+
+# ========== SIGNAL ENGINE (STMD) ==========
+class SignalEngine:
+    """Construct per-asset STMD signals."""
+    def __init__(self, momentum_window: int = 21, vol_window: int = 63):
+        self.momentum_window = momentum_window
+        self.vol_window = vol_window
+
+    def compute_phi(self, price_df: pd.DataFrame) -> pd.DataFrame:
+        """Return phi signals DataFrame (same index/columns as price_df)."""
+        momentum = price_df / price_df.shift(self.momentum_window) - 1.0
+        returns = price_df.pct_change().fillna(0)
+        realized_vol = returns.rolling(self.vol_window).std() * np.sqrt(252)
+        phi = pd.DataFrame(index=price_df.index, columns=price_df.columns, dtype=float)
+        for col in price_df.columns:
+            mom = momentum[col].fillna(0)
+            mom_z = (mom - mom.rolling(252).mean()) / (mom.rolling(252).std() + 1e-12)
+            vol_z = (realized_vol[col] - realized_vol[col].rolling(252).mean()) / (realized_vol[col].rolling(252).std() + 1e-12)
+            phi[col] = 0.6 * mom_z - 0.4 * vol_z
+        phi = phi.fillna(0.0)
+        logger.info("Computed phi signals (last date %s).", phi.index[-1].date())
+        return phi
+
+    def apply_vix_context(self, phi_row: pd.Series, vix_scalar: float, vix_sensitivity: float = -0.8) -> np.ndarray:
+        """Adjust phi by VIX-like scalar and return L1-normalized signed array."""
+        arr = phi_row.values.astype(float) - vix_sensitivity * (vix_scalar if not np.isnan(vix_scalar) else 0.0)
+        denom = np.sum(np.abs(arr)) + 1e-12
+        return arr / denom
+
+# ========== SCENARIO ENGINE ==========
+class ScenarioEngine:
+    """Monte Carlo path generation using historical covariance with Ledoit-Wolf shrinkage."""
+    def __init__(self, n_scenarios: int = 5000):
+        self.n_scenarios = n_scenarios
+
+    def simulate_horizon(self, returns_df: pd.DataFrame, horizon_days: int):
+        """Return R (M x N) scenario returns over horizon, annual covariance matrix, and drift estimate."""
+        mu = returns_df.mean() * 252.0
+        # shrinkage covariance
+        lw = LedoitWolf().fit(returns_df)
+        cov_shrink = lw.covariance_ * 252.0
+        # cholesky
+        L = cholesky(cov_shrink + np.eye(cov_shrink.shape[0]) * 1e-12, lower=True)
+        dt = horizon_days / 252.0
+        # draw scenarios
+        Z = np.random.normal(size=(self.n_scenarios, cov_shrink.shape[0]))
+        R = np.array([mu.values * dt + (L @ Z[i]) * np.sqrt(dt) for i in range(self.n_scenarios)])
+        logger.info("Simulated %d scenarios over %d-day horizon.", self.n_scenarios, horizon_days)
+        return R, cov_shrink, mu
+
+# ========== RISK ENGINE ==========
+class RiskEngine:
+    """Volatility-band enforcement, CVaR computation helper, naive scaler."""
+    def __init__(self, target_vol_min: float, target_vol_max: float, target_vol_mid: float):
+        self.target_vol_min = target_vol_min
+        self.target_vol_max = target_vol_max
+        self.target_vol_mid = target_vol_mid
+
+    @staticmethod
+    def portfolio_annual_vol(weights: np.ndarray, cov_ann: np.ndarray) -> float:
+        return float(np.sqrt(weights.T @ cov_ann @ weights))
+
+    def scale_to_target_vol(self, raw_signed: np.ndarray, cov_ann: np.ndarray, target: float) -> np.ndarray:
+        """Scale signed vector so portfolio volatility equals `target` (annual)."""
+        vol_raw = self.portfolio_annual_vol(raw_signed, cov_ann)
+        if vol_raw < 1e-12:
+            return np.zeros_like(raw_signed)
+        scale = target / vol_raw
+        return raw_signed * scale
+
+    def compute_cvar(self, portfolio_returns: np.ndarray, alpha: float = 0.95) -> float:
+        losses = -portfolio_returns
+        var = np.quantile(losses, alpha)
+        tail = losses[losses >= var]
+        if tail.size == 0:
+            return float(var)
+        return float(tail.mean())
+
+# ========== OPTIMIZER ==========
+class Optimizer:
+    """CVaR optimizer wrapper with fallback to naive scaling."""
+    def __init__(self, cvar_lambda: float = 0.8, alpha: float = 0.95, max_leverage: float = 3.0):
+        self.cvar_lambda = cvar_lambda
+        self.alpha = alpha
+        self.max_leverage = max_leverage
+
+    def solve_cvar(self, R_scenarios: np.ndarray):
+        """Solve the linearized CVaR optimization via cvxpy (if available).
+        Maximize expected return - lambda * CVaR, subject to gross leverage & box bounds.
+        """
+        if not CVXPY_AVAILABLE:
+            raise RuntimeError("cvxpy not installed in environment.")
+        M, N = R_scenarios.shape
+        x = cp.Variable(N)
+        zeta = cp.Variable()
+        u = cp.Variable(M)
+        returns_vector = R_scenarios @ x
+        expected_return = (1.0 / M) * cp.sum(returns_vector)
+        # CVaR linearization
+        losses = -returns_vector - zeta
+        constraints = [u >= losses, u >= 0]
+        cvar_expr = zeta + (1.0 / ((1.0 - self.alpha) * M)) * cp.sum(u)
+        obj = cp.Maximize(expected_return - self.cvar_lambda * cvar_expr)
+        constraints += [cp.norm1(x) <= self.max_leverage, x >= -1.0, x <= 1.0]
+        problem = cp.Problem(obj, constraints)
+        problem.solve(solver=cp.SCS, verbose=False)
+        x_val = x.value if x.value is not None else None
+        return x_val
+
+# ========== EXECUTION ENGINE (planner) ==========
+class ExecutionEngine:
+    """Map weights to contracts and execute via broker adapter (paper or live)."""
+    def __init__(self, broker: PaperBroker, instrument_map: Dict[str, Any], execution_cfg: Dict[str, Any]):
+        self.broker = broker
+        self.instrument_map = instrument_map
+        self.slice_chunks = execution_cfg.get("slice_chunks", 3)
+
+    def map_weights_to_contracts(self, weights: np.ndarray, price_row: pd.Series, capital: float) -> Dict[str, Dict[str, Any]]:
+        """Map signed weights (sum(abs) arbitrary) to contract counts and notional."""
+        mapping = {}
+        keys = list(price_row.index)
+        for i, key in enumerate(keys):
+            cfg = self.instrument_map[key]
+            price = float(price_row[key])
+            signed_weight = float(weights[i])
+            notional = signed_weight * capital
+            contract_size = cfg.get("contract_size", 1.0)
+            contract_notional = contract_size * price
+            if abs(contract_notional) < 1e-12:
+                contracts = 0.0
+            else:
+                contracts = notional / contract_notional
+            mapping[key] = {"price": price, "notional": notional, "contracts": contracts}
+        return mapping
+
+    def execute_mapping(self, mapping: Dict[str, Dict[str, Any]]):
+        """Execute the mapping on the broker with slicing. Uses signed contract counts."""
+        for key, details in mapping.items():
+            qty = details["contracts"]
+            if abs(qty) < 1e-6:
+                continue
+            side = "BUY" if qty > 0 else "SELL"
+            qty_abs = abs(qty)
+            chunk = qty_abs / max(1, self.slice_chunks)
+            # slice orders
+            for _ in range(int(max(1, self.slice_chunks))):
+                price = details["price"]
+                # For futures you would round contracts to integer; for prototyping allow fractional
+                self.broker.place_order(key, side, chunk, price)
+                # small sleep to emulate sequencing
+                time.sleep(0.02)
+
+# ========== MANAGER: orchestrates a cycle ==========
+class STMDManager:
+    def __init__(self, config: Dict[str, Any]):
+        self.cfg = config
+        self.data_engine = DataEngine(self.cfg["instruments"], history_years=self.cfg["data_history_years"])
+        self.signal_engine = SignalEngine()
+        self.scenario_engine = ScenarioEngine(n_scenarios=self.cfg["n_mc"])
+        self.risk_engine = RiskEngine(self.cfg["target_vol_min"], self.cfg["target_vol_max"], self.cfg["target_vol_mid"])
+        self.optimizer = Optimizer(cvar_lambda=self.cfg["lambda_cvar"], alpha=self.cfg["alpha_cvar"], max_leverage=self.cfg["max_gross_leverage"])
+        self.broker = PaperBroker(self.cfg["capital"]) if self.cfg["mode"] == "paper" else None  # plug live adapter here
+        self.execution = ExecutionEngine(self.broker, self.cfg["instruments"], self.cfg["execution"])
+
+    def run_cycle(self):
+        # 1. Data
+        price_df = self.data_engine.fetch_historical()
+        if price_df is None or price_df.shape[0] < 200:
+            logger.error("Insufficient data to run a cycle.")
+            return None
+
+        # 2. Signals
+        phi_df = self.signal_engine.compute_phi(price_df)
+        vix_proxy = price_df.iloc[:, 0].pct_change().rolling(21).std() * np.sqrt(252)  # simple proxy on first instrument
+        latest_prices = price_df.iloc[-1]
+        phi_latest = phi_df.iloc[-1]
+        vix_val = float(vix_proxy.iloc[-1]) if not vix_proxy.empty else 0.0
+        stmd_raw = self.signal_engine.apply_vix_context(phi_latest, vix_val)
+
+        # 3. Scenarios and covariance
+        returns_df = price_df.pct_change().dropna()
+        R, cov_ann, mu = self.scenario_engine.simulate_horizon(returns_df, self.cfg["horizon_days"])
+
+        # 4. Try CVaR optimizer; fallback to naive scaling of STMD
+        try:
+            if CVXPY_AVAILABLE:
+                x_opt = self.optimizer.solve_cvar(R)
+                if x_opt is None:
+                    raise RuntimeError("CVaR solver returned None.")
+            else:
+                raise RuntimeError("cvxpy not available; using naive approach.")
+        except Exception as e:
+            logger.warning("Optimizer failure / fallback: %s", e)
+            # naive: normalize STMD raw, then scale to target vol
+            # ensure L1 normalized
+            denom = np.sum(np.abs(stmd_raw)) + 1e-12
+            raw_norm = stmd_raw / denom
+            x_opt = self.risk_engine.scale_to_target_vol(raw_norm, cov_ann, self.cfg["target_vol_mid"])
+            # gross leverage clamp
+            gross = np.sum(np.abs(x_opt))
+            if gross > self.cfg["max_gross_leverage"]:
+                x_opt = x_opt * (self.cfg["max_gross_leverage"] / gross)
+
+        # 5. Enforce per-instrument notional caps
+        mappings = self.execution.map_weights_to_contracts(x_opt, latest_prices, self.cfg["capital"])
+        for inst, details in mappings.items():
+            if abs(details["notional"]) > self.cfg["max_notional_pct_per_instrument"] * self.cfg["capital"]:
+                factor = (self.cfg["max_notional_pct_per_instrument"] * self.cfg["capital"]) / (abs(details["notional"]) + 1e-12)
+                x_opt *= factor
+                mappings = self.execution.map_weights_to_contracts(x_opt, latest_prices, self.cfg["capital"])
+                logger.info("Scaled weights to respect per-instrument cap; factor=%.4f", factor)
+                break
+
+        # 6. Volatility band enforcement (hard)
+        vol = self.risk_engine.portfolio_annual_vol(x_opt, cov_ann)
+        if vol > self.cfg["target_vol_max"]:
+            logger.warning("Ex-ante vol %.3f > max %.3f — scaling down", vol, self.cfg["target_vol_max"])
+            x_opt = x_opt * (self.cfg["target_vol_max"] / (vol + 1e-12))
+        elif vol < self.cfg["target_vol_min"]:
+            # optional scaling up if allowed (we prefer conservative behavior)
+            logger.info("Ex-ante vol {:.3%} below min {:.3%}; leaving as is.".format(vol, self.cfg["target_vol_min"]))
+
+        # recompute mapping after potential scaling
+        mappings = self.execution.map_weights_to_contracts(x_opt, latest_prices, self.cfg["capital"])
+
+        # 7. Execute via execution engine
+        self.execution.execute_mapping(mappings)
+
+        # 8. Snapshot and save
+        snapshot = {
+            "ts": now_iso(),
+            "weights": x_opt.tolist(),
+            "mappings": mappings,
+            "positions": self.broker.get_positions() if self.broker else {},
+            "capital": self.broker.cash if self.broker else self.cfg["capital"],
+            "vix_proxy": float(vix_val),
+            "ex_ante_vol": float(self.risk_engine.portfolio_annual_vol(x_opt, cov_ann))
+        }
+        fn = os.path.join(self.cfg["logging_dir"], f"snapshot_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json")
+        with open(fn, "w") as f:
+            json.dump(snapshot, f, indent=2)
+        logger.info("Cycle snapshot saved: %s", fn)
+        return snapshot
+
+# ========== MAIN (demo run) ==========
+if __name__ == "__main__":
+    logger.info("Starting STMD Hybrid Infra (mode=%s)", CONFIG["mode"])
+    manager = STMDManager(CONFIG)
+    result = manager.run_cycle()
+    logger.info("Completed run; snapshot result keys: %s", list(result.keys()) if result else "none")
+    logger.info("Exiting.")
